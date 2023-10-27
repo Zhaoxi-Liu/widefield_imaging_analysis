@@ -13,7 +13,7 @@ def reconstruct(u,svt,dims = None):
             dims = u.shape[:2]
     return u.dot(svt).reshape((*dims,-1)).transpose(-1,0,1).squeeze()
 '''
-
+#%%
 def svd2tif(path, name='', uint16=False, corr470=False):
     # 读取SVD文件
     U = np.load(pjoin(path, 'U.npy'))
@@ -40,7 +40,7 @@ def svd2tif(path, name='', uint16=False, corr470=False):
         print(name+'hemo-corr.tif"输出完成')
 
 
-
+#%%
 def phasemap(path_merge, nrepeats=10, post_trial=3, export_ave_tif=True, export_phase=True):
 
     ### 路径和刺激重复次数。（本代码对应的是每个方向连续重复10次再下一个方向）
@@ -99,14 +99,16 @@ def phasemap(path_merge, nrepeats=10, post_trial=3, export_ave_tif=True, export_
     mag_az = (np.abs(left + right) * 2.)
 
     fig = plt.figure(figsize=[10, 5])
-    fig.add_subplot(1, 2, 1)
-    plt.imshow(im_fftphase_hsv([mag_el, phase_el]))
-    plt.axis('off')
-    fig.add_subplot(1, 2, 2)
+    axis_az = fig.add_subplot(1, 2, 1)
     plt.imshow(im_fftphase_hsv([mag_az, phase_az]))
     plt.axis('off')
+    axis_az.set_title('azimuth')
+    axis_el = fig.add_subplot(1, 2, 2)
+    plt.imshow(im_fftphase_hsv([mag_el, phase_el]))
+    plt.axis('off')
+    axis_el.set_title('elevation')
     fig.set_facecolor('white')
-    plt.savefig(pjoin(path_out, 'el_az_unfiltered.png'))
+    plt.savefig(pjoin(path_out, 'az_el_unfiltered.png'))
 
     if export_phase is True:
         ### export phase and magnitude
@@ -123,6 +125,10 @@ def phasemap(path_merge, nrepeats=10, post_trial=3, export_ave_tif=True, export_
                cmap='RdBu_r', clim=[-1, 1])
     plt.colorbar(shrink=0.5)
     plt.axis('off')
+    plt.suptitle('sign_map')
     fig.set_facecolor('white')
+    # plt.annotate('window: stim_length + {} s'.format(post_trial), xy=(0, 1), xycoords='axes fraction',
+    #                 fontsize=12, rotation=0, va='center')
     plt.savefig(pjoin(path_out, 'phasemap.png'))
-
+    plt.show()
+#%%
