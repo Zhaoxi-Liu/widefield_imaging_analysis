@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from os.path import join as pjoin
 
 #%%
-def sorting(SVT, trigger, seq, stim_len):
+def sorting_rf68(SVT, trigger, seq, stim_len):
     """
     data: ndarray,
     trigger: the index of each trigger

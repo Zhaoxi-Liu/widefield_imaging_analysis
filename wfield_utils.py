@@ -41,6 +41,25 @@ def svd2tif(path_wfield, name='', uint16=False, corr470=False):
 
 
 #%%
+def cal_captured_var(s):
+    total_variance = np.sum(s ** 2)  # 计算总方差
+    captured_var = np.cumsum(s ** 2) / total_variance * 100  # 捕获的方差百分比
+    return captured_var
+
+def plot_captured_var(path_wfield):
+    s = np.load(pjoin(path_wfield, 's.npy'))
+    captured_variance = cal_captured_var(s)
+    # 将捕获的方差绘制成图表
+    plt.plot(range(1, len(s) + 1), captured_variance, marker='o', markersize=1, linestyle='-', linewidth=0.5)
+    plt.title('Captured Variance vs. Number of Components (k)')
+    plt.xlabel('Number of Components (k)')
+    plt.ylabel('Captured Variance (%)')
+    plt.grid(True)
+    plt.savefig(pjoin(path_wfield, 'svd_var.png'), bbox_inches='tight', transparent=False, facecolor='white')
+    plt.show()
+
+
+#%%
 def cal_snr(x, axis1, axis2):
     """
     axis1:重复，axis2:时间。重复axis要在时间axis之后！
@@ -139,7 +158,7 @@ def phasemap(path_wfield, nrepeats=10, post_trial=3, export_ave_tif=True, export
 
     if plot_phasemasp is True:
         ### computes fft in SVD space
-        from scipy.ndimage.filters import gaussian_filter,median_filter
+        from scipy.ndimage import gaussian_filter,median_filter
         # mov = runpar(median_filter, U.transpose((2, 0, 1)), size=1)
         # U = np.stack(mov).transpose((1, 2, 0)).astype(np.float32)
         up = reconstruct(U, fft(raw_up.T, axis=0)[nrepeats])
@@ -184,25 +203,6 @@ def phasemap(path_wfield, nrepeats=10, post_trial=3, export_ave_tif=True, export
                         fontsize=12, rotation=0, va='center')
         plt.savefig(pjoin(path_out, 'signmap.png'), bbox_inches='tight')
         plt.show()
-
-
-#%%
-def cal_captured_var(s):
-    total_variance = np.sum(s ** 2)  # 计算总方差
-    captured_var = np.cumsum(s ** 2) / total_variance * 100  # 捕获的方差百分比
-    return captured_var
-
-def plot_captured_var(path_wfield):
-    s = np.load(pjoin(path_wfield, 's.npy'))
-    captured_variance = cal_captured_var(s)
-    # 将捕获的方差绘制成图表
-    plt.plot(range(1, len(s) + 1), captured_variance, marker='o', markersize=1, linestyle='-', linewidth=0.5)
-    plt.title('Captured Variance vs. Number of Components (k)')
-    plt.xlabel('Number of Components (k)')
-    plt.ylabel('Captured Variance (%)')
-    plt.grid(True)
-    plt.savefig(pjoin(path_wfield, 'svd_var.png'), bbox_inches='tight', transparent=False, facecolor='white')
-    plt.show()
 
 
 #%%

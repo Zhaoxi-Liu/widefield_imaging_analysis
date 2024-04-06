@@ -25,6 +25,10 @@ para = {'distance':150, #mm
         'imag_size_pixel':np.array([256,256]), # in pixel
         }
 para['imag_size'] = para['imag_size_pixel']*para['micrometer_per_pixel'] # in micrometer
+x=math.degrees(math.atan( 1/2*para['screen_width'] / para['distance'] ))
+y=math.degrees(math.atan( 1/2*para['screen_height'] / para['distance'] ))
+para['az_range'] = (para['visual_center'][0]-x, para['visual_center'][0]+x)
+para['el_range'] = (para['visual_center'][1]-y, para['visual_center'][1]+y)
 
 stim_len = 20
 
@@ -67,7 +71,7 @@ seq[:, 0] = np.where(is_off, seq[:, 0] + 48, seq[:, 0])
 
 #%% sorting
 # SVTcorr_sort维度：[nSVD, stim_len, n_stim, n_rep]
-SVTcorr_sort = sorting(SVTcorr, trialfile[:, 1], seq[:, 0], stim_len).astype('float32')
+SVTcorr_sort = sorting_rf68(SVTcorr, trialfile[:, 1], seq[:, 0], stim_len).astype('float32')
 # tif_sort维度：[width, height, stim_len, n_stim, n_rep]
 tif_sort = np.tensordot(U, SVTcorr_sort, axes=(2, 0)).astype('float32')
 # imwrite(pjoin(path_wfield,'loc1-ave.tif'),tif_sort[:,:,:,0,-1].transpose(2,0,1).astype('float32'), imagej=True)
@@ -150,3 +154,4 @@ plot_response_RF(NaN2mean(tif_sort[max_indices[1, n_max], max_indices[0, n_max],
 
 #%%
 print('end')
+

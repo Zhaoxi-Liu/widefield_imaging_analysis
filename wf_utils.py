@@ -1,3 +1,13 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
+def filename2int(x):
+    import os
+    # 从文件名中提取整数值，用于后续排序等。
+    filename = os.path.splitext(os.path.basename(x))[0]
+    return int(filename)
+
+
 def log_progress(sequence, every=None, size=None, name='Items'):
     from ipywidgets import IntProgress, HTML, VBox
     from IPython.display import display
@@ -56,7 +66,6 @@ def log_progress(sequence, every=None, size=None, name='Items'):
 
 
 def denoise(y):
-    import numpy as np
     # 计算观测值与前后数据点的差
     diff_y_prev = np.diff(y, prepend=np.nan)
     diff_y_next = np.diff(y, append=np.nan)
@@ -72,8 +81,6 @@ def denoise(y):
 
 
 def plot_outliers(x, y, ax, label):
-    import numpy as np
-    import matplotlib.pyplot as plt
     # 分别计算观测值与前后数据点的差
     diff_y_prev = np.concatenate(([np.nan], np.diff(y)))
     diff_y_next = np.concatenate((np.diff(y), [np.nan]))
@@ -90,8 +97,6 @@ def plotFluor(path, trial):
     # path 是刺激文件夹，包含raw和process子文件夹
 
     import pandas as pd
-    import numpy as np
-    import matplotlib.pyplot as plt
     import os
 
     file_405 = trial + "-405-Values.csv"
@@ -160,5 +165,9 @@ def plotFluor(path, trial):
     outputFileName = trial + "_value_stimu.png"
     plt.savefig(os.path.join(path, "process", outputFileName), dpi=300, bbox_inches='tight')
     plt.show()
+
+
+#%%
+
 
 
