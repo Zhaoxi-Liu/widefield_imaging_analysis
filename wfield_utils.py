@@ -111,11 +111,11 @@ def phasemap(path_wfield, nrepeats=10, post_trial=3, export_ave_tif=True, export
         print('Finish exporting average tif')
 
     if export_raw_tif is True:
-        imwrite(pjoin(path_out, 'raw_up.tif'), reconstruct(U, raw_up).astype('float32'), imagej=True)
-        imwrite(pjoin(path_out, 'raw_down.tif'), reconstruct(U, raw_down).astype('float32'), imagej=True)
-        imwrite(pjoin(path_out, 'raw_left.tif'), reconstruct(U, raw_left).astype('float32'), imagej=True)
-        imwrite(pjoin(path_out, 'raw_right.tif'), reconstruct(U, raw_right).astype('float32'), imagej=True)
-        print('Finish exporting raw tif')
+        imwrite(pjoin(path_out, 'rep_up.tif'), reconstruct(U, raw_up).astype('float32'), imagej=True)
+        imwrite(pjoin(path_out, 'rep_down.tif'), reconstruct(U, raw_down).astype('float32'), imagej=True)
+        imwrite(pjoin(path_out, 'rep_left.tif'), reconstruct(U, raw_left).astype('float32'), imagej=True)
+        imwrite(pjoin(path_out, 'rep_right.tif'), reconstruct(U, raw_right).astype('float32'), imagej=True)
+        print('Finish exporting rep tif')
 
     if plot_snr is True:
         snr_up = cal_snr(np.tensordot(U, stack_up, axes=(2, 0)), 3, 2)
@@ -199,10 +199,29 @@ def phasemap(path_wfield, nrepeats=10, post_trial=3, export_ave_tif=True, export
         plt.axis('off')
         plt.suptitle(os.path.basename(path_wfield)[:15] +' sign_map')
         fig.set_facecolor('white')
-        plt.annotate('window: stim_length + {} s'.format(post_trial), xy=(0, 1), xycoords='axes fraction',
-                        fontsize=12, rotation=0, va='center')
+        # plt.annotate('window: stim_length + {} s'.format(post_trial), xy=(0, 1), xycoords='axes fraction',
+        #                 fontsize=12, rotation=0, va='center')
         plt.savefig(pjoin(path_out, 'signmap.png'), bbox_inches='tight')
         plt.show()
 
 
-#%%
+# %%
+def tif2mp4(tiff, mp4, clip=0.03, fps=10):
+    import numpy as np
+    import cv2
+    import tifffile
+
+    image = tifffile.imread(tiff)
+    # Threshold the values
+    image_clipped = np.clip(image, -clip, clip)
+    # Convert the image to UInt8 format
+    uint8_image = ((image_clipped + clip) / clip * 127).astype(np.uint8)
+    # Create a VideoWriter object to save the video as MP4
+    output_video = cv2.VideoWriter(mp4, cv2.VideoWriter_fourcc(*'mp4v'), fps,
+                                   (uint8_image.shape[2], uint8_image.shape[1]))
+    # Write the images to the video
+    for frame in uint8_image:
+        output_video.write(frame)
+    # Release the VideoWriter object
+    output_video.release()
+
