@@ -104,17 +104,17 @@ def phasemap(path_wfield, nrepeats=10, post_trial=3, export_ave_tif=True, export
 
     if export_ave_tif is True:
         # export trial-average tif
-        imwrite(pjoin(path_out, 'avg_up.tif'), reconstruct(U, avg_up).astype('float32'), imagej=True)
-        imwrite(pjoin(path_out, 'avg_down.tif'), reconstruct(U, avg_down).astype('float32'), imagej=True)
-        imwrite(pjoin(path_out, 'avg_left.tif'), reconstruct(U, avg_left).astype('float32'), imagej=True)
-        imwrite(pjoin(path_out, 'avg_right.tif'), reconstruct(U, avg_right).astype('float32'), imagej=True)
+        imwrite(pjoin(path_out, 'tif', 'avg_up.tif'), reconstruct(U, avg_up).astype('float32'), imagej=True)
+        imwrite(pjoin(path_out, 'tif', 'avg_down.tif'), reconstruct(U, avg_down).astype('float32'), imagej=True)
+        imwrite(pjoin(path_out, 'tif', 'avg_left.tif'), reconstruct(U, avg_left).astype('float32'), imagej=True)
+        imwrite(pjoin(path_out, 'tif', 'avg_right.tif'), reconstruct(U, avg_right).astype('float32'), imagej=True)
         print('Finish exporting average tif')
 
     if export_raw_tif is True:
-        imwrite(pjoin(path_out, 'rep_up.tif'), reconstruct(U, raw_up).astype('float32'), imagej=True)
-        imwrite(pjoin(path_out, 'rep_down.tif'), reconstruct(U, raw_down).astype('float32'), imagej=True)
-        imwrite(pjoin(path_out, 'rep_left.tif'), reconstruct(U, raw_left).astype('float32'), imagej=True)
-        imwrite(pjoin(path_out, 'rep_right.tif'), reconstruct(U, raw_right).astype('float32'), imagej=True)
+        imwrite(pjoin(path_out, 'tif', 'rep_up.tif'), reconstruct(U, raw_up).astype('float32'), imagej=True)
+        imwrite(pjoin(path_out, 'tif', 'rep_down.tif'), reconstruct(U, raw_down).astype('float32'), imagej=True)
+        imwrite(pjoin(path_out, 'tif', 'rep_left.tif'), reconstruct(U, raw_left).astype('float32'), imagej=True)
+        imwrite(pjoin(path_out, 'tif', 'rep_right.tif'), reconstruct(U, raw_right).astype('float32'), imagej=True)
         print('Finish exporting rep tif')
 
     if plot_snr is True:

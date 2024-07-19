@@ -1,16 +1,15 @@
-# %% import packages
 import NeuroAnalysisTools
 import NeuroAnalysisTools.core.FileTools as ft
 import NeuroAnalysisTools.RetinotopicMapping as rm
 import pickle
+import os
 import numpy as np
 import pandas as pd
-import os
 from tifffile import imread, imwrite
 import matplotlib.pyplot as plt
 import cv2
-from NatMovie_utils import *
 from glob import glob
+from NatMovie_utils import *
 
 # %% set path and parameter
 path_wfield = r'Y:\WF_VC_liuzhaoxi\24.05.20_H78\retinotopy\process\20240520-194029-wfield'
@@ -32,9 +31,9 @@ n_patch = len(retino['finalPatchesMarked'])
 
 path_patch_stim = pjoin(path_out, experiment + '-patch-stim')
 os.makedirs(path_patch_stim, exist_ok=True)
+stim_file = pjoin(r'D:\Zhaoxi\mouse_vision\code\retinotopy', 'stim-' + direction + '.mp4')
 
 for direction in ['up', 'down', 'left', 'right']:
-    stim_file = pjoin(r'D:\Zhaoxi\mouse_vision\code\retinotopy', 'stim-' + direction + '.mp4')
     tif_avg = pjoin(path_out, 'avg_' + direction + '.tif')
     avg_patch_stim_file = pjoin(path_patch_stim, os.path.basename(tif_avg)[:-4] + '-patch-stim.mp4')
     merge_patch_stim(avg_patch_stim_file, tif_avg, stim_file, clip=0.02, patches=retino['finalPatchesMarked'], ncol=1,
@@ -43,7 +42,6 @@ for direction in ['up', 'down', 'left', 'right']:
 print('\nfinish all avg merging')
 
 for direction in ['up', 'down', 'left', 'right']:
-    stim_file = pjoin(r'D:\Zhaoxi\mouse_vision\code\retinotopy', 'stim-' + direction + '.mp4')
     tif_rep = pjoin(path_out, 'rep_' + direction + '.tif')
     rep_patch_stim_file = pjoin(path_patch_stim, os.path.basename(tif_rep)[:-4] + '-patch-stim.mp4')
     merge_patch_stim(rep_patch_stim_file, tif_rep, stim_file, clip=0.05, patches=retino['finalPatchesMarked'], ncol=1,
@@ -71,6 +69,9 @@ plt.imshow(frames_ave, cmap='gray')
 for i, r in ccf_regions_im.iterrows():
     plt.plot(r['left_x'], r['left_y'], 'r', lw=0.2)
     plt.plot(r['right_x'],r['right_y'],'r',lw=0.2)
+    plt.text(r.left_center[0], r.left_center[1],
+             r.acronym, color='w', va='center',
+             fontsize=6, alpha=0.5, ha='center')
 plt.axis('off')
 fig.set_facecolor('white')
 plt.savefig(pjoin(path_retinotopy, 'ccf.png'), bbox_inches='tight', pad_inches=0)
@@ -80,22 +81,52 @@ plt.show()
 
 path_ccf_stim = pjoin(path_out, experiment + '-ccf-stim')
 os.makedirs(path_ccf_stim, exist_ok=True)
+stim_file = pjoin(r'D:\Zhaoxi\mouse_vision\code\retinotopy', 'stim-' + direction + '.mp4')
 
 for direction in ['up', 'down', 'left', 'right']:
-    stim_file = pjoin(r'D:\Zhaoxi\mouse_vision\code\retinotopy', 'stim-' + direction + '.mp4')
-    tif_avg = pjoin(path_out, 'avg_' + direction + '.tif')
+    tif_avg = pjoin(path_out, 'tif', 'avg_' + direction + '.tif')
     avg_ccf_stim_file = pjoin(path_ccf_stim, os.path.basename(tif_avg)[:-4] + '-ccf-stim.mp4')
-    merge_ccf_stim(avg_ccf_stim_file, tif_avg, ccf_regions_im, stim_file=stim_file, left=True, right=True,
-                   tif_width=merge_frame_size[0], tif_height=merge_frame_size[1], tif_fps=10, clip=0.02, trial_rep=1, text=direction + '-avg ')
+    merge_ccf_stim(avg_ccf_stim_file, tif_avg, ccf_regions_im, stim_file=stim_file, tif_fps=10, trial_rep=1,
+                   vmin=-0.1, vmax=0.1, text=direction + '-avg ')
 print('\nfinish all avg merging')
 
 for direction in ['up', 'down', 'left', 'right']:
-    stim_file = pjoin(r'D:\Zhaoxi\mouse_vision\code\retinotopy', 'stim-' + direction + '.mp4')
-    tif_rep = pjoin(path_out, 'rep_' + direction + '.tif')
+    tif_rep = pjoin(path_out, 'tif', 'rep_' + direction + '.tif')
     rep_ccf_stim_file = pjoin(path_ccf_stim, os.path.basename(tif_rep)[:-4] + '-ccf-stim.mp4')
-    merge_ccf_stim(rep_ccf_stim_file, tif_rep, ccf_regions_im, stim_file=stim_file, left=True, right=True,
-                   tif_width=merge_frame_size[0], tif_height=merge_frame_size[1], tif_fps=10, clip=0.05, trial_rep=10, text=direction + '-rep ')
+    merge_ccf_stim(rep_ccf_stim_file, tif_rep, ccf_regions_im, stim_file=stim_file, tif_fps=10, trial_rep=10,
+                   vmin=-0.1, vmax=0.1, text=direction + '-rep ')
 print('\nfinish all rep merging')
 
+for direction in ['up', 'down', 'left', 'right']:
+    tif_rep = pjoin(path_out, 'tif', 'rep_' + direction + '_reshape.tif')
+    rep_ccf_stim_file = pjoin(path_ccf_stim, os.path.basename(tif_rep)[:-4] + '-ccf-stim.mp4')
+    merge_ccf_stim(rep_ccf_stim_file, tif_rep, ccf_regions_im, stim_file=stim_file, ncol=5, nrow=2, tif_fps=10,
+                   vmin=-0.1, vmax=0.1, trial_rep=1, text=direction + '-rep-reshape ')
+print('\nfinish all rep reshape merging')
 
-# %%
+# %% merge enhance-tif & ccf & stim
+
+path_ccf_stim = pjoin(path_out, experiment + '-enhance-ccf-stim')
+os.makedirs(path_ccf_stim, exist_ok=True)
+
+for direction in ['up', 'down', 'left', 'right']:
+    tif_avg = pjoin(path_out, 'tif-enhance', 'avg_' + direction + '_enhance.tif')
+    avg_ccf_stim_file = pjoin(path_ccf_stim, os.path.basename(tif_avg)[:-4] + '-ccf-stim.mp4')
+    merge_ccf_stim(avg_ccf_stim_file, tif_avg, ccf_regions_im, stim_file=stim_file, tif_fps=10,
+                   vmin=200, vmax=25000, trial_rep=1, text=direction + '-avg ')
+print('\nfinish all avg merging')
+
+for direction in ['up', 'down', 'left', 'right']:
+    tif_rep = pjoin(path_out, 'tif-enhance', 'rep_' + direction + '_enhance.tif')
+    rep_ccf_stim_file = pjoin(path_ccf_stim, os.path.basename(tif_rep)[:-4] + '-ccf-stim.mp4')
+    merge_ccf_stim(rep_ccf_stim_file, tif_rep, ccf_regions_im, stim_file=stim_file, tif_fps=10,
+                   vmin=200, vmax=25000, trial_rep=10, text=direction + '-rep ')
+print('\nfinish all rep merging')
+
+for direction in ['up', 'down', 'left', 'right']:
+    tif_rep = pjoin(path_out, 'tif-enhance', 'rep_' + direction + '_enhance_reshape.tif')
+    rep_ccf_stim_file = pjoin(path_ccf_stim, os.path.basename(tif_rep)[:-4] + '-ccf-stim.mp4')
+    merge_ccf_stim(rep_ccf_stim_file, tif_rep, ccf_regions_im, stim_file=stim_file, ncol=5, nrow=2, tif_fps=10,
+                   vmin=200, vmax=25000, trial_rep=1, text=direction + '-rep-reshape ')
+print('\nfinish all rep reshape merging')
+

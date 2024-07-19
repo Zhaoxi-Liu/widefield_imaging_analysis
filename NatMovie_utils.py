@@ -1,7 +1,7 @@
 from os.path import join as pjoin
 import numpy as np
 import matplotlib.pyplot as plt
-
+from os.path import basename as basename
 
 # %%
 def sorting_NatMov(SVT, trials_onset, n_movie, movie_len, pre_lenth=0, after_lenth=0):
@@ -90,41 +90,49 @@ def plot_borders(patches, plotAxis=None, title=None, zoom=1,
 
 
 # %%
-def plot_movie_snr(snr, n_rows, n_cols, movie_list, path_out=None, vmin=None, vmax=None, pixel_um=None, patches=None):
+def subplot_movie_heatmap(movie_data, n_rows, n_cols, movie_name_list, path_outfile=None, title=None, vmin=None, vmax=None,
+                          cmap='hot', pixel_um=None, patches=None, ccf_regions=None, ccf_color='w'):
     fig = plt.figure(figsize=(15, 12))
     gs = fig.add_gridspec(n_rows, n_cols + 1, width_ratios=[1] * n_cols + [0.05])  # 添加一列给colorbar
     if vmin is None:
-        vmin = np.min(snr)
+        vmin = np.min(movie_data)
     if vmax is None:
-        vmax = np.max(snr)
+        vmax = np.max(movie_data)
 
     for i in range(n_rows):
         for j in range(n_cols):
             index = i * n_cols + j
-            if index < snr.shape[2]:
+            if index < movie_data.shape[2]:
                 ax = fig.add_subplot(gs[i, j])
-                img = ax.imshow(snr[:, :, index], cmap='hot', interpolation='nearest', vmin=vmin, vmax=vmax)
+                img = ax.imshow(movie_data[:, :, index], cmap=cmap, interpolation='nearest', vmin=vmin, vmax=vmax)
                 if pixel_um is not None:
                     # Calculate the length of the scale line in pixels
                     scale_line_length = 1e3 / pixel_um
-                    line = plt.Line2D([0, 0 + scale_line_length], [snr.shape[1] - 4, snr.shape[1] - 4], color='white',
+                    line = plt.Line2D([0, 0 + scale_line_length], [movie_data.shape[1] - 4, movie_data.shape[1] - 4], color='white',
                                       linewidth=2)
                     plt.gca().add_line(line)
-                    plt.text(scale_line_length / 2, snr.shape[1] + 15, '1mm', color='black', fontsize=12, ha='center')
+                    plt.text(scale_line_length / 2, movie_data.shape[1] + 15, '1mm', color='black', fontsize=12, ha='center')
                 if patches:
                     # 调用plot_borders函数在当前轴上画边界
                     plot_borders(patches, plotAxis=ax, title=None, zoom=1,
                                  borderWidth=1, isColor=False, plotName=True, fontSize=8)
+                if ccf_regions is not None:
+                    for idx, r in ccf_regions.iterrows():
+                        ax.plot(r['left_x'], r['left_y'], ccf_color, lw=0.2)
+                        ax.plot(r['right_x'], r['right_y'], ccf_color, lw=0.2)
+                        ax.text(r.left_center[0], r.left_center[1], r.acronym, color='k', va='center', fontsize=4, alpha=1, ha='center')
 
-                ax.set_title(str(movie_list[index])[2:-6])
+                ax.set_title(movie_name_list[index])
                 ax.axis('off')
 
     cbar_ax = fig.add_subplot(gs[:, -1])  # 在最后一列添加colorbar位置
     cbar = fig.colorbar(img, cax=cbar_ax)
+    if title:
+        fig.suptitle(title, fontsize=24)
     fig.set_facecolor('white')
     plt.tight_layout()
-    if path_out is not None:
-        plt.savefig(pjoin(path_out, 'snr_per_movie.png'), bbox_inches='tight')
+    if path_outfile is not None:
+        plt.savefig(path_outfile, bbox_inches='tight')
     plt.show()
 
 
@@ -136,13 +144,21 @@ def subplot_borders(patches, width=2560, height=512, ncol=1, nrow=1, borderWidth
     plt.gca().yaxis.set_major_locator(plt.NullLocator())
     plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
     plt.margins(0, 0)
+
     if ncol == 1 and nrow == 1:
         plot_borders(patches, plotAxis=axes, zoom=1, borderWidth=borderWidth, fontSize=fontSize,
                      isColor=isColor, plotName=plotName)
+    elif ncol > 1 and nrow > 1:
+        for irow in range(nrow):
+            for icol in range(ncol):
+                ax = axes[irow, icol]
+                plot_borders(patches, plotAxis=ax, zoom=1, borderWidth=borderWidth, fontSize=fontSize,
+                             isColor=isColor, plotName=plotName)
     else:
         for ax in axes:
             plot_borders(patches, plotAxis=ax, zoom=1, borderWidth=borderWidth, fontSize=fontSize,
                          isColor=isColor, plotName=plotName)
+
     return fig
 
 
@@ -174,11 +190,17 @@ def merge_patch_stim(out_file, tif_file, stim_file=None, tif_fps=10, clip=0.05, 
         borders_rgba[white, 3] = 0
 
     out = cv2.VideoWriter(out_file, cv2.VideoWriter_fourcc(*'mp4v'), tif_fps, (width, height))
-    # if stim_file:
-    #     n_frame = min(len(tif_video.pages), int(mp4_video.get(cv2.CAP_PROP_FRAME_COUNT)) // frame_repeat * trial_rep)
+    if not out.isOpened():
+        print("can't open output video file")
+        return
+
+    cv2.namedWindow(basename(out_file), cv2.WINDOW_NORMAL)
+    cv2.resizeWindow(basename(out_file), width // 2, height // 2)
+    cv2.moveWindow(basename(out_file), 1920, 0)
+
     for iframe in range(len(tif_video.pages)):
         frame1 = tif_video.pages[iframe].asarray()
-        frame1_clipped = np.clip(frame1, -clip, clip)  # 将 frame1 的值限制在 -0.05 到 0.05 的范围内
+        frame1_clipped = np.clip(frame1, -clip, clip)
         frame1_uint8 = ((frame1_clipped + clip) / clip * 127).astype(np.uint8)
         frame1_bgr = cv2.cvtColor(frame1_uint8, cv2.COLOR_GRAY2BGR)
 
@@ -207,25 +229,32 @@ def merge_patch_stim(out_file, tif_file, stim_file=None, tif_fps=10, clip=0.05, 
             merged_frame = np.concatenate((frame1_bgr, frame2_resized), axis=0)
         else:
             merged_frame = frame1_bgr
+        cv2.imshow(basename(out_file), merged_frame)
+        cv2.waitKey(1)
 
-            # 输出拼接帧
+        # 输出拼接帧
         out.write(merged_frame)
         print('finish merging {}{}th frame'.format(text, iframe + 1))
 
     # 释放资源
     mp4_video.release()
     out.release()
+    cv2.destroyAllWindows()
     print('finish merging all frames of {}'.format(tif_file))
 
 
 # %%
-def merge_ccf_stim(out_file, tif_file, ccf_regions, stim_file=None, left=True, right=True,
-                   tif_width=512, tif_height=512, tif_fps=10, clip=0.05, trial_rep=1, text=''):
+def merge_ccf_stim(out_file, tif_file, ccf_regions, stim_file=None, ncol=1, nrow=1,
+                   tif_fps=10, vmin=None, vmax=None, trial_rep=1, text=''):
     import numpy as np
     import cv2
     from tifffile import TiffFile
 
+
     tif_video = TiffFile(tif_file)
+    tif_width = tif_video.pages[0].shape[1]
+    tif_height = tif_video.pages[0].shape[0]
+
     mp4_video = cv2.VideoCapture(stim_file)
     mp4_width = int(mp4_video.get(cv2.CAP_PROP_FRAME_WIDTH) / 2)
     mp4_height = int(mp4_video.get(cv2.CAP_PROP_FRAME_HEIGHT) / 2)
@@ -236,20 +265,33 @@ def merge_ccf_stim(out_file, tif_file, ccf_regions, stim_file=None, left=True, r
     frame_repeat = round(mp4_fps / tif_fps)
 
     out = cv2.VideoWriter(out_file, cv2.VideoWriter_fourcc(*'mp4v'), tif_fps, (width, height))
+    if not out.isOpened():
+        print("can't open output video file")
+        return
+
+    if vmin is None:
+        vmin = tif_video.pages[0].asarray().min()
+    if vmax is None:
+        vmax = tif_video.pages[0].asarray().max()
+
+    cv2.namedWindow(basename(out_file), cv2.WINDOW_NORMAL)
+    cv2.resizeWindow(basename(out_file), width // 2, height // 2)
+    cv2.moveWindow(basename(out_file), 1920, 0)
 
     for iframe in range(len(tif_video.pages)):
         # plot iframe with allen map
-        fig = plt.figure(figsize=(tif_width / 128, tif_height / 128), dpi=128)
+        fig = plt.figure(figsize=(tif_width/128, tif_height/128), dpi=128)
         plt.gca().xaxis.set_major_locator(plt.NullLocator())
         plt.gca().yaxis.set_major_locator(plt.NullLocator())
         plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
         plt.margins(0, 0)
-        plt.imshow(tif_video.pages[iframe].asarray(), clim=[-clip, clip], cmap='gray')
-        for i, r in ccf_regions.iterrows():
-            if left:
-                plt.plot(r['left_x'], r['left_y'], 'r', lw=0.2)
-            if right:
-                plt.plot(r['right_x'], r['right_y'], 'r', lw=0.2)
+        plt.imshow(tif_video.pages[iframe].asarray(), clim=[vmin, vmax], cmap='gray')
+        for irow in range(nrow):
+            for icol in range(ncol):
+                    for idx, r in ccf_regions.iterrows():
+                        plt.plot(np.array(r['left_x'])+icol*(tif_width/ncol), np.array(r['left_y'])+irow*(tif_height/nrow), 'r', lw=0.3)
+                        plt.plot(np.array(r['right_x'])+icol*(tif_width/ncol), np.array(r['right_y'])+irow*(tif_height/nrow), 'r', lw=0.3)
+                        plt.text(r.left_center[0], r.left_center[1], r.acronym, color='w', va='center', fontsize=6, alpha=0.5, ha='center')
         plt.axis('off')
         fig.set_facecolor('white')
 
@@ -290,6 +332,8 @@ def merge_ccf_stim(out_file, tif_file, ccf_regions, stim_file=None, left=True, r
             merged_frame = np.concatenate((frame1_bgr, frame2_resized), axis=0)
         else:
             merged_frame = frame1_bgr
+        cv2.imshow(basename(out_file), merged_frame)
+        cv2.waitKey(1)
 
         # 写入帧到视频
         out.write(merged_frame)
@@ -297,6 +341,7 @@ def merge_ccf_stim(out_file, tif_file, ccf_regions, stim_file=None, left=True, r
 
     mp4_video.release()
     out.release()
+    cv2.destroyAllWindows()
     print('finish merging all frames of {}'.format(tif_file))
 
 
@@ -357,7 +402,7 @@ def merge2video(out_file, tif_videofile, stim_file, text=''):
 
 
 # %%
-def plot_heatmap(data, xlable, ylable, cmap='coolwarm', vmin=None, vmax=None, title=None, outfile=None, dpi=300):
+def plot_heatmap(data, xlable=None, ylable=None, cmap='coolwarm', vmin=None, vmax=None, title=None, outfile=None, dpi=300):
     import seaborn as sns
     import matplotlib.pyplot as plt
 
@@ -372,8 +417,10 @@ def plot_heatmap(data, xlable, ylable, cmap='coolwarm', vmin=None, vmax=None, ti
     sns.heatmap(data, cmap=cmap, vmin=vmin, vmax=vmax, annot=True, fmt=".6f", annot_kws={"size": 8, "color": 'black'},
                 ax=ax, cbar=True, square=True, linewidths=0)
 
-    ax.set_xticklabels(xlable, rotation=45, ha='right', fontsize=10)
-    ax.set_yticklabels(ylable, fontsize=10)
+    if xlable:
+        ax.set_xticklabels(xlable, rotation=45, ha='right', fontsize=10)
+    if ylable:
+        ax.set_yticklabels(ylable, fontsize=10)
     plt.gca().invert_yaxis()  # 倒置y轴
 
     if title:
