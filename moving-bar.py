@@ -40,7 +40,7 @@ if not os.path.exists(pjoin(path_wfield, "trials.csv")):
 else:
     print("trials.csv of "+experiment+" has existed.")
 
-#%% 导入预处理后的tif数据和rf68刺激seq
+#%% 导入预处理后的tif数据和刺激seq
 U = np.load(pjoin(path_wfield, 'U.npy')).astype('float32')
 SVTcorr = np.load(pjoin(path_wfield, 'SVTcorr.npy')).astype('float32')
 frames_average = np.load(pjoin(path_wfield, 'frames_average.npy')).astype('float32')
