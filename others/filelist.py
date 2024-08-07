@@ -27,9 +27,9 @@ else:
 import os
 from os.path import join as pjoin
 
-path=r'Y:\WF_VC_liuzhaoxi\24.05.20_H78\natural-movie\process\20240520-180021-natural-movie\20240520-180021-tif-rep-reshape-enhance'
-strA = '-rep-enhance-reshape.tif'
-strB = '-rep-reshape-enhance.tif'
+path=r'Y:\WF_VC_liuzhaoxi\P73\20240718\natural-movie\process\20240718-170059-natural-movie\20240718-170059-tif-rep-reshape'
+strA = '.tif'
+strB = '-rep-reshape.tif'
 # 获取当前目录下的所有文件
 files = os.listdir(path)
 
@@ -42,3 +42,5 @@ for filename in files:
         # 重命名文件
         os.rename(pjoin(path, filename), pjoin(path, new_filename))
         print(f"Renamed '{filename}' to '{new_filename}'")
+
+
