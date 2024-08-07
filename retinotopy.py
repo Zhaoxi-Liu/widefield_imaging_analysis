@@ -12,15 +12,15 @@ from glob import glob
 from NatMovie_utils import *
 
 # %% set path and parameter
-path_wfield = r'Y:\WF_VC_liuzhaoxi\24.05.20_H78\retinotopy\process\20240520-194029-wfield'
+path_wfield = r'Y:\WF_VC_liuzhaoxi\P73\20240718\retinotopy\process\20240718-161348-wfield'
 
 experiment = os.path.basename(path_wfield)[:15]
 rawPath = pjoin(path_wfield, '..\\..\\raw')
 path_out = pjoin(path_wfield, '..', experiment + '-retinotopy')
 os.makedirs(path_out, exist_ok=True)
+path_retinotopy = path_wfield[:-6] + 'retinotopy'
 
 # %% load patch data
-path_retinotopy = path_wfield[:-6] + 'retinotopy'
 
 with open(pjoin(path_retinotopy, 'retinotopy_out.pkl'), 'rb') as f:
     retino = pickle.load(f)
@@ -31,9 +31,9 @@ n_patch = len(retino['finalPatchesMarked'])
 
 path_patch_stim = pjoin(path_out, experiment + '-patch-stim')
 os.makedirs(path_patch_stim, exist_ok=True)
-stim_file = pjoin(r'D:\Zhaoxi\mouse_vision\code\retinotopy', 'stim-' + direction + '.mp4')
 
 for direction in ['up', 'down', 'left', 'right']:
+    stim_file = pjoin(r'D:\Zhaoxi\mouse_vision\code\retinotopy', 'stim-' + direction + '.mp4')
     tif_avg = pjoin(path_out, 'avg_' + direction + '.tif')
     avg_patch_stim_file = pjoin(path_patch_stim, os.path.basename(tif_avg)[:-4] + '-patch-stim.mp4')
     merge_patch_stim(avg_patch_stim_file, tif_avg, stim_file, clip=0.02, patches=retino['finalPatchesMarked'], ncol=1,
@@ -42,6 +42,7 @@ for direction in ['up', 'down', 'left', 'right']:
 print('\nfinish all avg merging')
 
 for direction in ['up', 'down', 'left', 'right']:
+    stim_file = pjoin(r'D:\Zhaoxi\mouse_vision\code\retinotopy', 'stim-' + direction + '.mp4')
     tif_rep = pjoin(path_out, 'rep_' + direction + '.tif')
     rep_patch_stim_file = pjoin(path_patch_stim, os.path.basename(tif_rep)[:-4] + '-patch-stim.mp4')
     merge_patch_stim(rep_patch_stim_file, tif_rep, stim_file, clip=0.05, patches=retino['finalPatchesMarked'], ncol=1,
@@ -81,16 +82,17 @@ plt.show()
 
 path_ccf_stim = pjoin(path_out, experiment + '-ccf-stim')
 os.makedirs(path_ccf_stim, exist_ok=True)
-stim_file = pjoin(r'D:\Zhaoxi\mouse_vision\code\retinotopy', 'stim-' + direction + '.mp4')
 
 for direction in ['up', 'down', 'left', 'right']:
+    stim_file = pjoin(r'D:\Zhaoxi\mouse_vision\python-code\retinotopy', 'stim-' + direction + '.mp4')
     tif_avg = pjoin(path_out, 'tif', 'avg_' + direction + '.tif')
     avg_ccf_stim_file = pjoin(path_ccf_stim, os.path.basename(tif_avg)[:-4] + '-ccf-stim.mp4')
     merge_ccf_stim(avg_ccf_stim_file, tif_avg, ccf_regions_im, stim_file=stim_file, tif_fps=10, trial_rep=1,
-                   vmin=-0.1, vmax=0.1, text=direction + '-avg ')
+                   vmin=-0.05, vmax=0.05, text=direction + '-avg ')
 print('\nfinish all avg merging')
 
 for direction in ['up', 'down', 'left', 'right']:
+    stim_file = pjoin(r'D:\Zhaoxi\mouse_vision\code\retinotopy', 'stim-' + direction + '.mp4')
     tif_rep = pjoin(path_out, 'tif', 'rep_' + direction + '.tif')
     rep_ccf_stim_file = pjoin(path_ccf_stim, os.path.basename(tif_rep)[:-4] + '-ccf-stim.mp4')
     merge_ccf_stim(rep_ccf_stim_file, tif_rep, ccf_regions_im, stim_file=stim_file, tif_fps=10, trial_rep=10,
@@ -98,6 +100,7 @@ for direction in ['up', 'down', 'left', 'right']:
 print('\nfinish all rep merging')
 
 for direction in ['up', 'down', 'left', 'right']:
+    stim_file = pjoin(r'D:\Zhaoxi\mouse_vision\code\retinotopy', 'stim-' + direction + '.mp4')
     tif_rep = pjoin(path_out, 'tif', 'rep_' + direction + '_reshape.tif')
     rep_ccf_stim_file = pjoin(path_ccf_stim, os.path.basename(tif_rep)[:-4] + '-ccf-stim.mp4')
     merge_ccf_stim(rep_ccf_stim_file, tif_rep, ccf_regions_im, stim_file=stim_file, ncol=5, nrow=2, tif_fps=10,
@@ -110,6 +113,7 @@ path_ccf_stim = pjoin(path_out, experiment + '-enhance-ccf-stim')
 os.makedirs(path_ccf_stim, exist_ok=True)
 
 for direction in ['up', 'down', 'left', 'right']:
+    stim_file = pjoin(r'D:\Zhaoxi\mouse_vision\code\retinotopy', 'stim-' + direction + '.mp4')
     tif_avg = pjoin(path_out, 'tif-enhance', 'avg_' + direction + '_enhance.tif')
     avg_ccf_stim_file = pjoin(path_ccf_stim, os.path.basename(tif_avg)[:-4] + '-ccf-stim.mp4')
     merge_ccf_stim(avg_ccf_stim_file, tif_avg, ccf_regions_im, stim_file=stim_file, tif_fps=10,
@@ -117,6 +121,7 @@ for direction in ['up', 'down', 'left', 'right']:
 print('\nfinish all avg merging')
 
 for direction in ['up', 'down', 'left', 'right']:
+    stim_file = pjoin(r'D:\Zhaoxi\mouse_vision\code\retinotopy', 'stim-' + direction + '.mp4')
     tif_rep = pjoin(path_out, 'tif-enhance', 'rep_' + direction + '_enhance.tif')
     rep_ccf_stim_file = pjoin(path_ccf_stim, os.path.basename(tif_rep)[:-4] + '-ccf-stim.mp4')
     merge_ccf_stim(rep_ccf_stim_file, tif_rep, ccf_regions_im, stim_file=stim_file, tif_fps=10,
@@ -124,6 +129,7 @@ for direction in ['up', 'down', 'left', 'right']:
 print('\nfinish all rep merging')
 
 for direction in ['up', 'down', 'left', 'right']:
+    stim_file = pjoin(r'D:\Zhaoxi\mouse_vision\code\retinotopy', 'stim-' + direction + '.mp4')
     tif_rep = pjoin(path_out, 'tif-enhance', 'rep_' + direction + '_enhance_reshape.tif')
     rep_ccf_stim_file = pjoin(path_ccf_stim, os.path.basename(tif_rep)[:-4] + '-ccf-stim.mp4')
     merge_ccf_stim(rep_ccf_stim_file, tif_rep, ccf_regions_im, stim_file=stim_file, ncol=5, nrow=2, tif_fps=10,

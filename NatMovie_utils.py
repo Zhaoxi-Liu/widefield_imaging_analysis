@@ -4,19 +4,19 @@ import matplotlib.pyplot as plt
 from os.path import basename as basename
 
 # %%
-def sorting_NatMov(SVT, trials_onset, n_movie, movie_len, pre_lenth=0, after_lenth=0):
+def sorting_NatMov(SVT, trials_onset, n_movie, movie_len, pre_length=0, after_length=0):
     nSVD = SVT.shape[0]
     n_trials = trials_onset.size
     n_rep = n_trials // n_movie
 
-    SVT_sorted = np.empty((nSVD, movie_len + pre_lenth + after_lenth, n_movie, n_rep))
+    SVT_sorted = np.empty((nSVD, movie_len + pre_length + after_length, n_movie, n_rep))
     for i_trial in range(n_trials):
         i_movie = i_trial // n_rep
         i_rep = i_trial % n_rep
-        SVT_sorted[:nSVD, :movie_len + pre_lenth + after_lenth, i_movie, i_rep] = SVT[:,
-                                                                                  trials_onset[i_trial] - pre_lenth:
+        SVT_sorted[:nSVD, :movie_len + pre_length + after_length, i_movie, i_rep] = SVT[:,
+                                                                                  trials_onset[i_trial] - pre_length:
                                                                                   trials_onset[
-                                                                                      i_trial] + movie_len + after_lenth]
+                                                                                      i_trial] + movie_len + after_length]
 
     return SVT_sorted
 
@@ -120,7 +120,7 @@ def subplot_movie_heatmap(movie_data, n_rows, n_cols, movie_name_list, path_outf
                     for idx, r in ccf_regions.iterrows():
                         ax.plot(r['left_x'], r['left_y'], ccf_color, lw=0.2)
                         ax.plot(r['right_x'], r['right_y'], ccf_color, lw=0.2)
-                        ax.text(r.left_center[0], r.left_center[1], r.acronym, color='k', va='center', fontsize=4, alpha=1, ha='center')
+                        ax.text(r.left_center[0], r.left_center[1], r.acronym, color=ccf_color, va='center', fontsize=4, alpha=1, ha='center')
 
                 ax.set_title(movie_name_list[index])
                 ax.axis('off')
@@ -402,7 +402,7 @@ def merge2video(out_file, tif_videofile, stim_file, text=''):
 
 
 # %%
-def plot_heatmap(data, xlable=None, ylable=None, cmap='coolwarm', vmin=None, vmax=None, title=None, outfile=None, dpi=300):
+def plot_heatmap(data, xlable=None, ylable=None, cmap='coolwarm', vmin=None, vmax=None, title=None, outfile=None, dpi=300, annot=True):
     import seaborn as sns
     import matplotlib.pyplot as plt
 
@@ -411,16 +411,16 @@ def plot_heatmap(data, xlable=None, ylable=None, cmap='coolwarm', vmin=None, vma
     if vmax == None:
         vmax = data.max()
 
-    fig, ax = plt.subplots(figsize=(16, 6))
+    fig, ax = plt.subplots(figsize=(data.shape[1], data.shape[0]))
     fig.set_facecolor('white')
     # 使用seaborn的heatmap函数来绘制热图
-    sns.heatmap(data, cmap=cmap, vmin=vmin, vmax=vmax, annot=True, fmt=".6f", annot_kws={"size": 8, "color": 'black'},
+    sns.heatmap(data, cmap=cmap, vmin=vmin, vmax=vmax, annot=annot, fmt=".6f", annot_kws={"size": 8, "color": 'black'},
                 ax=ax, cbar=True, square=True, linewidths=0)
 
     if xlable:
         ax.set_xticklabels(xlable, rotation=45, ha='right', fontsize=10)
     if ylable:
-        ax.set_yticklabels(ylable, fontsize=10)
+        ax.set_yticklabels(ylable, rotation=0, fontsize=10)
     plt.gca().invert_yaxis()  # 倒置y轴
 
     if title:
@@ -432,7 +432,7 @@ def plot_heatmap(data, xlable=None, ylable=None, cmap='coolwarm', vmin=None, vma
 
 
 # %%
-def plot_pca(data_pca, n_patch, n_movie, patch_list, movie_name_list, title='', outpath=None, pre_lenth=0,
+def plot_pca(data_pca, n_patch, n_movie, patch_list, movie_name_list, title='', outpath=None, pre_length=0,
              n_frame=None):
     for i_pc in range(3):  # 画第几主成分
 
@@ -461,12 +461,12 @@ def plot_pca(data_pca, n_patch, n_movie, patch_list, movie_name_list, title='', 
                 y2 = mean - np.std(data_pca[i_patch, i_movie, i_pc, :, :], axis=-1)
                 ax_data.fill_between(np.arange(data_pca.shape[3]), y1, y2, alpha=0.3, color='steelblue')
                 if n_frame is not None:
-                    ax_data.axvspan(pre_lenth, pre_lenth + n_frame, color='gray', alpha=0.25)
+                    ax_data.axvspan(pre_length, pre_length + n_frame, color='gray', alpha=0.25)
 
                 # 设置横坐标标签
                 xticks = np.arange(0, data_pca.shape[3] + 1, 10)  # 每100个数据标注一次
                 ax_data.set_xticks(xticks)
-                ax_data.set_xticklabels([f"{(x - pre_lenth) / 10:.0f}s" for x in xticks])
+                ax_data.set_xticklabels([f"{(x - pre_length) / 10:.0f}s" for x in xticks])
                 ax_data.set_xlim(0, data_pca.shape[3])
 
         fig.set_facecolor('white')
@@ -477,4 +477,51 @@ def plot_pca(data_pca, n_patch, n_movie, patch_list, movie_name_list, title='', 
         plt.show()
 
 
+#%%
+def subplot_timecourse(data, patch_list, movie_name_list, title='', outpath=None, plot_rep=False, pre_length=0,
+             n_frame=None, dpi=300):
+    n_patch = data.shape[0]
+    n_movie = data.shape[1]
+    fig = plt.figure(figsize=(int(n_movie * 10), int(n_patch * 3)))
+    gs = fig.add_gridspec(n_patch, n_movie)
 
+    # 添加movie名
+    for i_movie in range(n_movie):
+        ax_movie = fig.add_subplot(gs[0, i_movie])
+        ax_movie.text(0.5, 1, movie_name_list[i_movie], fontsize=20, ha='center', va='bottom')
+        ax_movie.axis('off')
+
+    for i_patch in range(n_patch):
+        for i_movie in range(n_movie):
+            # 添加patch名
+            gs_patch = gs[i_patch, i_movie].subgridspec(1, 2, width_ratios=[0.03, 1])
+            ax_patch_name = fig.add_subplot(gs_patch[0])
+            ax_patch_name.text(0, 0.5, patch_list[i_patch], fontsize=15, ha='center', va='center')
+            ax_patch_name.axis('off')
+
+            # 添加数据图
+            ax_data = fig.add_subplot(gs_patch[1])
+            if plot_rep==True:
+                for i_rep in range(data.shape[-1]):
+                    ax_data.plot(data[i_patch, i_movie, :, i_rep], color='black')
+            else:
+                mean = np.mean(data[i_patch, i_movie, :, :], axis=-1)
+                ax_data.plot(mean, color='black')
+                y1 = mean + np.std(data[i_patch, i_movie, :, :], axis=-1)
+                y2 = mean - np.std(data[i_patch, i_movie, :, :], axis=-1)
+                ax_data.fill_between(np.arange(data.shape[2]), y1, y2, alpha=0.3, color='steelblue')
+            if n_frame is not None:
+                ax_data.axvspan(pre_length, pre_length + n_frame, color='gray', alpha=0.25)
+
+            # 设置横坐标标签
+            xticks = np.arange(0, data.shape[2] + 1, 10)  # 每100个数据标注一次
+            ax_data.set_xticks(xticks)
+            ax_data.set_xticklabels([f"{(x - pre_length) / 10:.0f}s" for x in xticks])
+            ax_data.set_xlim(0, data.shape[2])
+
+    fig.set_facecolor('white')
+    fig.suptitle(title, fontsize=30, y=0.99)
+    # plt.tight_layout()
+    if outpath is not None:
+        plt.savefig(pjoin(outpath, title+'.png'), dpi=dpi, bbox_inches='tight')
+    plt.show()

@@ -1,4 +1,4 @@
-# %% import packages
+#%% import packages
 import NeuroAnalysisTools
 import NeuroAnalysisTools.core.FileTools as ft
 import NeuroAnalysisTools.RetinotopicMapping as rm
@@ -19,7 +19,7 @@ import timeit
 from glob import glob
 from NatMovie_utils import *
 
-# %% set path and parameter
+#%% set path and parameter
 path_wfield = r'Y:\WF_VC_liuzhaoxi\24.05.20_H78\natural-movie\process\20240520-180021-wfield'
 
 experiment = os.path.basename(path_wfield)[:15]
@@ -36,7 +36,7 @@ for imovie in range(n_movie):
 
 n_frame = 150  # 帧
 
-# %% load patch data
+#%% load patch data
 path_retinotopy = r'Y:\WF_VC_liuzhaoxi\24.05.20_H78\retinotopy\process\20240520-194029-retinotopy'
 
 with open(pjoin(path_retinotopy, 'retinotopy_out.pkl'), 'rb') as f:
@@ -44,21 +44,21 @@ with open(pjoin(path_retinotopy, 'retinotopy_out.pkl'), 'rb') as f:
 f.close()
 n_patch = len(retino['finalPatchesMarked'])
 
-# %% load tif data
+#%% load tif data
 U = np.load(pjoin(path_wfield, 'U.npy')).astype('float32')
 SVTcorr = np.load(pjoin(path_wfield, 'SVTcorr.npy')).astype('float32')
 frames_average = np.load(pjoin(path_wfield, 'frames_average.npy')).astype('float32')[0]
 
-# %% sorting
-pre_lenth = 0
-after_lenth = 0
+#%% sorting
+pre_length = 0
+after_length = 0
 # SVTcorr_sort维度：[nSVD, n_frame, n_movie, n_rep]
-SVTcorr_sort = sorting_NatMov(SVTcorr, trialfile[:, 1], n_movie, n_frame, pre_lenth, after_lenth).astype('float32')
+SVTcorr_sort = sorting_NatMov(SVTcorr, trialfile[:, 1], n_movie, n_frame, pre_length, after_length).astype('float32')
 print('SVTcorr_sort.shape: (nSVD, n_frame, n_movie, n_rep) ', SVTcorr_sort.shape)
 n_rep = SVTcorr_sort.shape[-1]
 SVTcorr_mean = np.mean(SVTcorr_sort, axis=3)
 
-# %% reconstruction and calculate SNR
+#%% reconstruction and calculate SNR
 
 path_out_tif = pjoin(path_out, experiment + '-tif')
 os.makedirs(path_out_tif, exist_ok=True)
@@ -77,7 +77,7 @@ for imovie in range(n_movie):
 print('export all mean-tifs')
 np.save(pjoin(path_out, 'snr.npy'), snr)
 
-# %%
+#%%
 path_out_rep_tif = pjoin(path_out, experiment + '-tif-rep')
 os.makedirs(path_out_rep_tif, exist_ok=True)
 
@@ -101,7 +101,7 @@ for imovie in range(n_movie):
             tif_rep[:, :, :, imovie].astype('float32'), imagej=True)
 print('export all rep-tifs')
 
-# %% prepare allen ccf map
+#%% prepare allen ccf map
 from wfield import *
 
 lmarks = load_allen_landmarks(pjoin(path_wfield, 'dorsal_cortex_landmarks.json'))
@@ -115,7 +115,7 @@ ccf_regions_im = allen_transform_regions(lmarks['transform'], ccf_regions_refere
                                          bregma_offset=lmarks['bregma_offset'])
 
 
-# %% plot ccf map on average frame
+#%% plot ccf map on average frame
 frames_ave = np.load(pjoin(path_wfield, 'frames_average.npy'))[0]
 merge_frame_size = (512, 512)  # (width, height)
 fig = plt.figure(figsize=(merge_frame_size[0] / 128, merge_frame_size[1] / 128), dpi=128)
@@ -130,9 +130,9 @@ fig.set_facecolor('white')
 # plt.savefig(pjoin(path_out, 'ccf.png'), bbox_inches='tight', pad_inches=0)
 plt.show()
 
-# %% plot snr
+#%% plot snr
 snr = np.load(pjoin(path_out, 'snr.npy'))
-subplot_movie_heatmap(snr, 4, 4, movie_list, path_outfile=pjoin(path_out, 'snr_per_movie.png'),
+subplot_movie_heatmap(snr, 4, 4, movie_name_list, path_outfile=pjoin(path_out, 'snr_per_movie.png'),
                       title=experiment + '-snr', vmin=0.5, vmax=4, pixel_um=13, patches=None,
                       ccf_regions=ccf_regions_im)
 
@@ -141,7 +141,7 @@ subplot_movie_heatmap(snr, 4, 4, movie_list, path_outfile=pjoin(path_out, 'snr_p
 # subplot_movie_heatmap(std, 4, 4, movie_list, path_outfile=pjoin(path_out, 'std_per_movie.png'), title=experiment+'-std', vmin=0.01, vmax=0.1,
 #                       pixel_um=13, patches=None, ccf_regions=ccf_regions_im)
 
-# %% pupil calculate corrcoef
+#%% pupil calculate corrcoef
 from pupil_utils import *
 
 path_pupil = pjoin(path_out, experiment + '-pupil')
@@ -182,7 +182,7 @@ fig.set_facecolor('white')
 plt.savefig(pjoin(path_pupil, 'pupil_area_change.png'))
 plt.show()
 
-# %% merge tif & patch & stim
+#%% merge tif & patch & stim
 path_patch_stim = pjoin(path_out, experiment + '-patch-stim')
 os.makedirs(path_patch_stim, exist_ok=True)
 for imovie in range(n_movie):
@@ -196,7 +196,7 @@ for imovie in range(n_movie):
 
 print('finish all merging')
 
-# %% merge tif & ccf & stim (tif可变形）
+#%% merge tif & ccf & stim (tif可变形）
 path_ccf = pjoin(path_out, experiment + '-ccf')
 os.makedirs(path_ccf, exist_ok=True)
 
@@ -268,7 +268,7 @@ for imovie in range(n_movie):
 
 print('finish all merging')
 
-# %% merge tif & ccf & stim
+#%% merge tif & ccf & stim
 path_enhance_ccf_stim = pjoin(path_out, experiment + '-enhance-ccf-stim')
 os.makedirs(path_enhance_ccf_stim, exist_ok=True)
 for imovie in range(n_movie):
@@ -329,7 +329,7 @@ for imovie in range(n_movie):
     print('finish merging {}-{}'.format(imovie + 1, movie_name))
 print('finish all merging')
 
-# %% pupil merge video
+#%% pupil merge video
 from pupil_utils import *
 
 path_pupil = pjoin(path_out, experiment + '-pupil')
@@ -386,7 +386,7 @@ for imovie in range(n_movie):
                            tif_height, text=text)
 
 
-# %% 改变原始图像
+#%% 改变原始图像
 ccf_regions = allen_transform_regions(None,ccf_regions_reference,
                                       resolution = lmarks['resolution'],
                                         bregma_offset = lmarks['bregma_offset'])
@@ -396,7 +396,7 @@ atlas, areanames, brain_mask = atlas_from_landmarks_file(pjoin(path_wfield, 'dor
 stack = SVDStack(U,SVTcorr)
 stack.set_warped(True, M = lmarks['transform'])
 
-# %% Plot the first 20 spatial components of the transformed dataset and the raw dataset
+#%% Plot the first 20 spatial components of the transformed dataset and the raw dataset
 fig = plt.figure()
 # plt.imshow(stack.U_warped[:,:,0], clim=[-0.01,0.01], cmap='coolwarm')
 # plt.imshow(stack.originalU[:,:,0], clim=[-0.01,0.01], cmap='coolwarm')
@@ -409,20 +409,20 @@ for i,r in ccf_regions.iterrows():
 plt.axis('off')
 plt.show()
 
-# %% sorting
-pre_lenth = 20
-after_lenth = 20
+#%% sorting
+pre_length = 20
+after_length = 20
 # SVTcorr_sort维度：[nSVD, n_frame, n_movie, n_rep]
-SVTcorr_sort = sorting_NatMov(SVTcorr, trialfile[:, 1], n_movie, n_frame, pre_lenth, after_lenth).astype('float32')
+SVTcorr_sort = sorting_NatMov(SVTcorr, trialfile[:, 1], n_movie, n_frame, pre_length, after_length).astype('float32')
 print('SVTcorr_sort.shape: (nSVD, n_frame, n_movie, n_rep) ', SVTcorr_sort.shape)
 n_rep = SVTcorr_sort.shape[-1]
 
-# %% 各脑区在空间上PCA
+#%% 各脑区在空间上PCA
 
 n_pc = 3
 patch_list = ['V1', 'LM', 'RL', 'AL', 'AM', 'PM', 'P']
 
-patch_pca = np.zeros((n_patch, n_movie, n_pc, n_frame + pre_lenth + after_lenth, n_rep))
+patch_pca = np.zeros((n_patch, n_movie, n_pc, n_frame + pre_length + after_length, n_rep))
 patch_pca_var = np.zeros((n_patch, 10))
 
 for i_patch, patch in enumerate(patch_list):
@@ -450,7 +450,7 @@ patch_pca_var_df = pd.DataFrame(patch_pca_var, index=patch_list,
                                 columns=['PC1', 'PC2', 'PC3', 'PC4', 'PC5', 'PC6', 'PC7', 'PC8', 'PC9', 'PC10'])
 patch_pca_var_df.to_csv(pjoin(path_out, 'patch_pca_var.csv'), index=True)
 
-# %% patch重新排序
+#%% patch重新排序
 # patch_pca = np.load(pjoin(path_out, 'patch_pca_scores.npy'))
 #
 # # 如果patch需要重新排序
@@ -463,23 +463,23 @@ patch_pca_var_df.to_csv(pjoin(path_out, 'patch_pca_var.csv'), index=True)
 # patch_list_index = [patch_list_raw.index(patch) for patch in patch_list_reorder]
 # patch_pca_reorder = patch_pca[patch_list_index, :, :, :, :]
 
-# %% 画各脑区空间上主成分在时间上的变化
+#%% 画各脑区空间上主成分在时间上的变化
 plot_pca(patch_pca, n_patch, n_movie, patch_list, movie_name_list, title=experiment, outpath=path_out,
-         pre_lenth=pre_lenth, n_frame=n_frame)
+         pre_length=pre_length, n_frame=n_frame)
 
 # pca_all = np.concatenate((pca1, pca2, pca3, pca4), axis=-1)
 # np.save(pjoin(r'D:\Zhaoxi\mouse_vision\data', 'patch_pca_scores_all.npy'), pca_all)
 # plot_pca(pca_all, n_patch, n_movie, patch_list, movie_name_list, title='C92', outpath=r'D:\Zhaoxi\mouse_vision',
-#          pre_lenth=pre_lenth, n_frame=n_frame)
+#          pre_length=pre_length, n_frame=n_frame)
 
 
-# %% 去掉颅窗外数据
+#%% 去掉颅窗外数据
 mask = imread(pjoin(path_wfield, 'mask.tif'))
 mask = np.where(mask > 0, 1, 0)
 # mask = np.rot90(mask, k=3)  # 逆时针旋转90度
 u = U * mask[:, :, None]
 u = U
-# %% 从SVT拆分出 Sigma
+#%% 从SVT拆分出 Sigma
 Sigma = np.sqrt(np.sum(SVTcorr ** 2, axis=1))
 Sigma = Sigma[:100]
 s = np.diag(Sigma)
@@ -487,7 +487,7 @@ us = u[:, :, :100] @ s
 u_pca = us.reshape(U.shape[0] * U.shape[1], -1)
 
 
-# %% 聚类函数
+#%% 聚类函数
 def optimal_cluster_gmm(X, n_components_max=50, random_init=False, n_init=100):
     n_neuron = X.shape[0]
     range_n_clusters = list(range(2, n_components_max + 1))
@@ -558,7 +558,7 @@ def optimal_cluster_gmm(X, n_components_max=50, random_init=False, n_init=100):
     return n_cluster, aic, bic, silhouette_score, labels_arr, labels_arr_optimal
 
 
-# %% find the optimal cluster number using GMM
+#%% find the optimal cluster number using GMM
 start = timeit.default_timer()
 n_cluster_max = 15
 [n_cluster_optimal, aic_all, bic_all, silhouette_score_all, labels_arr_all, _] = optimal_cluster_gmm(u_pca,
@@ -577,7 +577,7 @@ labels_arr = np.zeros((u_pca.shape[0], n_cluster_max - 1), dtype=np.dtype('uint8
 for i in range(n_cluster_max - 1):
     labels_arr[:, i] = labels_arr_all[:, i, bic_idx[i]]
 
-# %% cluster neurons based on labels
+#%% cluster neurons based on labels
 labels_gmm = labels_arr[:, n_cluster_optimal - 2]
 
 print(np.unique(labels_gmm).size == n_cluster_optimal)
@@ -588,7 +588,7 @@ cluster_dist_gmm = plot_cluster_dist(X_cluster_gmm)
 # show cluster in temporal space
 X_temporal_cluster_gmm, X_temporal_cluster_gmm_error, _, _ = plot_cluster(X_temporal, labels_gmm, [])
 
-# %% test PCA
+#%% test PCA
 '''
 a = np.random.randint(0,100,size=(5, 5, 10, 10))
 a = a - a.mean()
@@ -626,7 +626,7 @@ a.mean()-a_reconstruct.mean()
 Out[237]: -3.2236534429507125e-15
 '''
 
-# %% 算脑区内平均movie内平均的结果
+#%% 算脑区内平均movie内平均的结果
 '''
 mean_patch_movie = pd.DataFrame(index=retino['finalPatchesMarked'].keys(), columns=movie_name_list)
 mean_patch_movie_rep = pd.DataFrame(index=retino['finalPatchesMarked'].keys(), columns=movie_name_list)
