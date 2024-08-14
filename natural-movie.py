@@ -133,7 +133,7 @@ plt.show()
 #%% plot snr
 snr = np.load(pjoin(path_out, 'snr.npy'))
 subplot_movie_heatmap(snr, 4, 4, movie_name_list, path_outfile=pjoin(path_out, 'snr_per_movie.png'),
-                      title=experiment + '-snr', vmin=0.5, vmax=4, pixel_um=13, patches=None,
+                      title=experiment + '-snr', vmin=None, vmax=4, pixel_um=13, patches=None,
                       ccf_regions=ccf_regions_im)
 
 # std = np.std(tif_sort, axis=(2, 4))

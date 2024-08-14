@@ -5,6 +5,7 @@ from os.path import basename as basename
 
 # %%
 def sorting_NatMov(SVT, trials_onset, n_movie, movie_len, pre_length=0, after_length=0):
+    # SVT: [ncomponent, n_frame]
     nSVD = SVT.shape[0]
     n_trials = trials_onset.size
     n_rep = n_trials // n_movie
@@ -28,31 +29,6 @@ def cal_snr(x, axis1, axis2):
     """
     snr = np.nanvar(np.nanmean(x, axis=axis1), axis=axis2) / np.nanmean(np.nanvar(x, axis=axis1), axis=axis2)
     return snr
-
-
-# %%
-'''
-def plot_movie_snr_(snr, n_rows, n_cols, movie_list, path_out=None):
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 12))
-    vmin = np.min(snr)
-    vmax = np.max(snr)
-
-    for i in range(n_rows):
-        for j in range(n_cols):
-            index = i * n_cols + j
-            if index < snr.shape[2]:
-                img = axes[i, j].imshow(snr[:, :, index], cmap='hot', interpolation='nearest', vmin=vmin,
-                                        vmax=vmax)
-                axes[i, j].set_title(str(movie_list[index])[2:-6])
-                cbar = fig.colorbar(img, ax=axes[i, j], shrink=0.8)
-            axes[i, j].axis('off')
-
-    fig.set_facecolor('white')
-    plt.tight_layout()
-    if path_out is not None:
-        plt.savefig(pjoin(path_out, 'snr_per_movie.png'), bbox_inches='tight')
-    plt.show()
-'''
 
 
 # %%
@@ -90,6 +66,53 @@ def plot_borders(patches, plotAxis=None, title=None, zoom=1,
 
 
 # %%
+def subplot_movie_heatmap_(movie_data, n_rows, n_cols, movie_name_list, path_outfile=None, title=None, vmin=None, vmax=None, cmap='hot',
+                    pixel_um=None, patches=None, ccf_regions=None, ccf_color='w', dpi=200):
+    if vmin is None:
+        vmin = np.min(movie_data)
+    if vmax is None:
+        vmax = np.max(movie_data)
+
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 12))
+    for i in range(n_rows):
+        for j in range(n_cols):
+            index = i * n_cols + j
+            if index < movie_data.shape[2]:
+                img = axes[i, j].imshow(movie_data[:, :, index], cmap=cmap, interpolation='nearest', vmin=vmin,
+                                        vmax=vmax)
+                axes[i, j].set_title(movie_name_list[index], pad=0)
+                axes[i, j].title.set_position([0.5, 1.00])
+                cbar = fig.colorbar(img, ax=axes[i, j])
+                if pixel_um is not None:
+                    # Calculate the length of the scale line in pixels
+                    scale_line_length = 1e3 / pixel_um
+                    line = plt.Line2D([0, 0 + scale_line_length], [movie_data.shape[1] - 4, movie_data.shape[1] - 4],
+                                      color='white',
+                                      linewidth=2)
+                    axes[i, j].add_line(line)
+                    axes[i, j].text(scale_line_length / 2, movie_data.shape[1] + 25, '1mm', color='black', fontsize=10,
+                             ha='center')
+                if patches:
+                    # 调用plot_borders函数在当前轴上画边界
+                    plot_borders(patches, plotAxis=axes[i, j], title=None, zoom=1,
+                                 borderWidth=1, isColor=False, plotName=True, fontSize=8)
+                if ccf_regions is not None:
+                    for idx, r in ccf_regions.iterrows():
+                        axes[i, j].plot(r['left_x'], r['left_y'], ccf_color, lw=0.2)
+                        axes[i, j].plot(r['right_x'], r['right_y'], ccf_color, lw=0.2)
+                        axes[i, j].text(r.left_center[0], r.left_center[1], r.acronym, color=ccf_color, va='center', fontsize=4, alpha=1, ha='center')
+            axes[i, j].axis('off')
+
+    fig.set_facecolor('white')
+    if title:
+        fig.suptitle(title, fontsize=24)
+    plt.tight_layout(h_pad=0.5, w_pad=0, rect=[0, 0, 1, 0.97])
+    if path_outfile is not None:
+        plt.savefig(path_outfile, bbox_inches='tight', dpi=dpi)
+    plt.show()
+
+
+# %%
 def subplot_movie_heatmap(movie_data, n_rows, n_cols, movie_name_list, path_outfile=None, title=None, vmin=None, vmax=None,
                           cmap='hot', pixel_um=None, patches=None, ccf_regions=None, ccf_color='w'):
     fig = plt.figure(figsize=(15, 12))
@@ -122,7 +145,8 @@ def subplot_movie_heatmap(movie_data, n_rows, n_cols, movie_name_list, path_outf
                         ax.plot(r['right_x'], r['right_y'], ccf_color, lw=0.2)
                         ax.text(r.left_center[0], r.left_center[1], r.acronym, color=ccf_color, va='center', fontsize=4, alpha=1, ha='center')
 
-                ax.set_title(movie_name_list[index])
+                ax.set_title(movie_name_list[index], pad=0)
+                ax.title.set_position([0.5, 1.00])
                 ax.axis('off')
 
     cbar_ax = fig.add_subplot(gs[:, -1])  # 在最后一列添加colorbar位置
@@ -130,7 +154,7 @@ def subplot_movie_heatmap(movie_data, n_rows, n_cols, movie_name_list, path_outf
     if title:
         fig.suptitle(title, fontsize=24)
     fig.set_facecolor('white')
-    plt.tight_layout()
+    plt.tight_layout(h_pad=0.5, w_pad=0, rect=[0, 0, 1, 0.97])
     if path_outfile is not None:
         plt.savefig(path_outfile, bbox_inches='tight')
     plt.show()
@@ -163,7 +187,7 @@ def subplot_borders(patches, width=2560, height=512, ncol=1, nrow=1, borderWidth
 
 
 # %%
-def merge_patch_stim(out_file, tif_file, stim_file=None, tif_fps=10, clip=0.05, patches=None, ncol=1, nrow=1, trial_rep=1, text=''):
+def merge_patch_stim(out_file, tif_file, stim_file=None, tif_fps=10, clip=0.05, patches=None, ncol=1, nrow=1, trial_rep=1, text='', reverse=False):
     import cv2
     import numpy as np
     import tifffile
@@ -215,6 +239,9 @@ def merge_patch_stim(out_file, tif_file, stim_file=None, tif_fps=10, clip=0.05, 
             ret2, frame2 = mp4_video.read()
             if not ret2:
                 continue
+            if reverse:
+                # 上下颠倒视频帧
+                frame2 = cv2.flip(frame2, 0)
             # 缩小 natural movie 视频帧的大小
             frame2_resized = cv2.resize(frame2, (mp4_width, mp4_height))
             # 补齐宽度
@@ -245,7 +272,7 @@ def merge_patch_stim(out_file, tif_file, stim_file=None, tif_fps=10, clip=0.05, 
 
 # %%
 def merge_ccf_stim(out_file, tif_file, ccf_regions, stim_file=None, ncol=1, nrow=1,
-                   tif_fps=10, vmin=None, vmax=None, trial_rep=1, text=''):
+                   tif_fps=10, vmin=None, vmax=None, trial_rep=1, text='', reverse=False):
     import numpy as np
     import cv2
     from tifffile import TiffFile
@@ -318,6 +345,9 @@ def merge_ccf_stim(out_file, tif_file, ccf_regions, stim_file=None, ncol=1, nrow
             ret2, frame2 = mp4_video.read()
             if not ret2:
                 continue
+            if reverse:
+                # 上下颠倒视频帧
+                frame2 = cv2.flip(frame2, 0)
             # 缩小 natural movie 视频帧的大小
             frame2_resized = cv2.resize(frame2, (mp4_width, mp4_height))
             # 补齐宽度
@@ -417,9 +447,9 @@ def plot_heatmap(data, xlable=None, ylable=None, cmap='coolwarm', vmin=None, vma
     sns.heatmap(data, cmap=cmap, vmin=vmin, vmax=vmax, annot=annot, fmt=".6f", annot_kws={"size": 8, "color": 'black'},
                 ax=ax, cbar=True, square=True, linewidths=0)
 
-    if xlable:
+    if xlable is not None:
         ax.set_xticklabels(xlable, rotation=45, ha='right', fontsize=10)
-    if ylable:
+    if ylable is not None:
         ax.set_yticklabels(ylable, rotation=0, fontsize=10)
     plt.gca().invert_yaxis()  # 倒置y轴
 
@@ -494,7 +524,7 @@ def subplot_timecourse(data, patch_list, movie_name_list, title='', outpath=None
     for i_patch in range(n_patch):
         for i_movie in range(n_movie):
             # 添加patch名
-            gs_patch = gs[i_patch, i_movie].subgridspec(1, 2, width_ratios=[0.03, 1])
+            gs_patch = gs[i_patch, i_movie].subgridspec(1, 2, width_ratios=[0.03, 0.7])
             ax_patch_name = fig.add_subplot(gs_patch[0])
             ax_patch_name.text(0, 0.5, patch_list[i_patch], fontsize=15, ha='center', va='center')
             ax_patch_name.axis('off')
@@ -520,8 +550,9 @@ def subplot_timecourse(data, patch_list, movie_name_list, title='', outpath=None
             ax_data.set_xlim(0, data.shape[2])
 
     fig.set_facecolor('white')
-    fig.suptitle(title, fontsize=30, y=0.99)
-    # plt.tight_layout()
+    fig.suptitle(title, fontsize=40)
+    plt.tight_layout(pad=2.0, h_pad=2, w_pad=3, rect=[0, 0, 1, 0.98])
     if outpath is not None:
         plt.savefig(pjoin(outpath, title+'.png'), dpi=dpi, bbox_inches='tight')
     plt.show()
+
