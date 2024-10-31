@@ -69,7 +69,6 @@ def sorting_4direct(SVT, trigger, seq, stim_len):
 
     return SVT_sorted.astype('float16')
 
-
 #%% sorting
 # SVTcorr_sort维度：[nSVD, stim_len, n_stim, n_rep]
 SVTcorr_sort = sorting_4direct(SVTcorr, trialfile[:, 1], seq[:, 0], stim_len).astype('float32')
