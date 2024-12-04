@@ -8,37 +8,42 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-def cal_velocity(even_data, measure_interval=1000):
+def correct_cross_outlier(bin_path, outlier_index_470, outlier_index_405, overwrite=False):
     '''
-    Calculate the speed of a motor encoder based on wave_A and wave_B channels
-    When the codewheel rotates in the clockwise direction (as viewed from the 
-    encoder end of the motor), channel A will lead channel B. If the codewheel 
-    rotates in the counterclockwise direction, channel B will lead channel A.
-    
-    mesure_interval: the interval for measurements the velocity, in ms
+    Correct the outliers frames in the merged tiff file.
+    Parameters:
+        bin_path: string, the path of the bin file.
+        outlier_index_405: numpy array, the index of the outliers in 405 channel.
+        outlier_index_470: numpy array, the index of the outliers in 470 channel.
     '''
 
-    cpr = 200
-    diammeter = 2.54 # cm
-    split_index = np.arange(0, even_data.shape[0], measure_interval)
-    split_index = np.append(split_index, even_data.shape[0])
+    if (len(outlier_index_470) > 0) or (len(outlier_index_405) > 0):
+        print('There are outliers frames need to be corrected!')
+        bin_name = os.path.splitext(os.path.basename(bin_path))[0]
+        dtype = bin_name.split('_')[-1]
+        shape = tuple([int(i) for i in bin_name.split('_')[:-1]])
+        images = np.memmap(bin_path, dtype=dtype, mode='r+', shape=shape)
+        if len(outlier_index_470) > 0:
+            for i in outlier_index_470:
+                images[i, 0, :, :] = 0.5*images[i-1, 0, :, :] + 0.5*images[i+1, 0, :, :]
+        if len(outlier_index_405) > 0:
+            for i in outlier_index_405:
+                print(i)
+                images[i, 0, :, :] = 0.5*images[i-1, 0, :, :] + 0.5*images[i+1, 0, :, :] # in this case, 470 channel also need to be corrected
+                # images[i, 0, :, :] = 0
+                images[i, 1, :, :] = 0.5*images[i-1, 1, :, :] + 0.5*images[i+1, 1, :, :]
+        if overwrite:
+            images.flush() # save the changes
+            print('Outliers frames corrected!')
+    else:
+        print('No outliers frames to correct!')
 
-    velocity = np.zeros((split_index.size-1))
-    for i in range(split_index.size-1):
-        wave_A = even_data[split_index[i]:split_index[i+1], 1]
-        wave_B = even_data[split_index[i]:split_index[i+1], 2]
-        raise_A = np.where(np.diff(wave_A) == 1)[0]
-        count = 0
-        for j in range(raise_A.size):
-            if wave_B[raise_A[j]] == 0:
-                count += 1
-            else:
-                count -= 1
-        velocity[i] = (count / cpr * np.pi * diammeter)
-        
-    return velocity
+    return images
 
-def correct_lum_outliers(bin_path, outlier_index_470, outlier_index_405, plot=True):
+def correct_lum_outlier(bin_path, outlier_index_470, outlier_index_405, plot=True, overwrite=False):
+    '''
+    Correct the luminance outliers frames in the merged tiff file.
+    '''
     if (outlier_index_470 is not None) or (outlier_index_405 is not None):
         print('There are luminance outliers frames need to be corrected!')
         bin_name = os.path.splitext(os.path.basename(bin_path))[0]
@@ -48,13 +53,14 @@ def correct_lum_outliers(bin_path, outlier_index_470, outlier_index_405, plot=Tr
         if outlier_index_470 is not None:
             for i in range(outlier_index_470.shape[0]):
                 start, end = outlier_index_470
-                images[start:end+1, 0, :, :] = (images[start-1, 0, :, :] + images[end+1, 0, :, :]) / 2
+                images[start:end+1, 0, :, :] = 0.5*images[start-1, 0, :, :] + 0.5*images[end+1, 0, :, :]
         if outlier_index_405 is not None:
             for i in range(outlier_index_405.shape[0]):
                 start, end = outlier_index_405
-                images[start:end+1, 1, :, :] = (images[start-1, 1, :, :] + images[end+1, 1, :, :]) / 2
-        images.flush()
-        print('Luminance outliers frames corrected!')
+                images[start:end+1, 1, :, :] = 0.5*images[start-1, 1, :, :] + 0.5*images[end+1, 1, :, :]
+        if overwrite:
+            images.flush()
+            print('Luminance outliers frames corrected!')
     else:
         print('No luminance outliers frames to correct!')
 
@@ -67,15 +73,29 @@ def correct_lum_outliers(bin_path, outlier_index_470, outlier_index_405, plot=Tr
         ax.plot(mean_values_470, label='470', color='r')
         ax.plot(mean_values_405, label='405', color='k')
         ax.legend()
-        plt.title('correct_lum_outliers')
+        plt.title('correct_lum_outlier')
         plt.show()
+        
+    return images
 
-def detect_dim_outliers(mean_values, lum_thr_coef=0.3, plot=True):
+def detect_cross_outlier(time_stamp_470, time_stamp_405, time_thr=10):
+    '''
+    detect the cross-channel outliers based on the time stamps of 405 and 470 channels
+    cross-channel: the 405 or 470 channel frames wrongly recoreded.
+    time_thr: the threshold of the vairance of the interval between the 405 and 470 channels
+    '''
+    diff_time = abs(time_stamp_470 - time_stamp_405)
+    time_outliers_idx_advance = np.where(diff_time < (50-time_thr))[0]
+    time_outliers_idx_lag = np.where(diff_time > (50+time_thr))[0] + 1
+
+    if time_stamp_470[0] < time_stamp_405[0]: # 470 channel starts first
+        return time_outliers_idx_lag, time_outliers_idx_advance
+    else: # 405 channel starts first
+        return time_outliers_idx_advance, time_outliers_idx_lag
+
+def detect_lum_outlier(mean_values, lum_thr_coef=0.3, plot=True):
     '''
     Detect outliers in the mean_values array.
-    There are two types of outliers:
-    1. lumiance: the LED not normaly lighted, the mean value is lower than normal.
-    2. cross-channel: the 405 or 470 channel frames wrongly recoreded.
     Parameters:
         mean_values: numpy array, the mean values of the image stack. 
         The first column is the mean values of 470 channel, the second column is the mean values of 405 channel.
@@ -115,7 +135,12 @@ def detect_dim_outliers(mean_values, lum_thr_coef=0.3, plot=True):
         if len(outlier_lum_idx_470) > 0 or len(outlier_lum_idx_405) > 0:
             ax.hlines(np.mean(mean_values[:, 1])*lum_thr_coef, 0, len(mean_values), color='g', linestyle='--')
         ax.legend()
-        plt.title('detect_dim_outliers')
+        plt.title('detect_lum_outlier')
+    
+    if len(outlier_lum_idx_470) > 0 or len(outlier_lum_idx_405) > 0:
+        print('detect_lum_outlier: There are dim outliers frames detected!')
+    else:
+        print('detect_lum_outlier: No dim outliers frames detected!')
 
     return outlier_index
 
@@ -135,6 +160,24 @@ def display_wrapper(images, cmap='gray', figsize=(5,5), colorbar=False):
 
     frame_slider = interact(display_images, frame=(0, len(images)-1, 1))
     display(frame_slider)
+
+def image2stack(folder_path, preview=None):
+    '''
+    preview: the number of images to preview, int or None
+    '''
+    folder_name = os.path.basename(folder_path)
+    image_path_ls = glob(pjoin(folder_path, '*.tif'))
+    image_path_ls = sorted(image_path_ls, key=filename2int) # to make sure the images are in the right order
+    if preview is None:
+        image_stack = [imread(tiff) for tiff in log_progress(image_path_ls, name=folder_name)]
+    else:
+        image_stack = [imread(tiff) for tiff in log_progress(image_path_ls[:preview], name=folder_name)]
+
+    return np.array(image_stack)
+
+def normalization(data):
+    norm = (data - data.min()) / (data.max() - data.min())
+    return norm
 
 def plot_onset_index(frame_index, title=None):
     frame_interval = np.diff(frame_index)
@@ -175,6 +218,7 @@ def organize_tif(folder_path, save_path=None):
     return np.array(image_stack)
 
 def rotate_crop_array(array, angle, left, top, width, height):
+
     '''
     Rotate the image by the angle and crop the image with the given coordinates
     Args:
@@ -264,3 +308,7 @@ def sorting_sequence(data, index, seq):
     data_sorted[:,:,n_rep,:] = np.mean(data_sorted[:,:,:n_rep, :],axis=2)
 
     return data_sorted
+
+def standardization(data):
+    stand = data - data.mean() / np.std(data)
+    return stand
