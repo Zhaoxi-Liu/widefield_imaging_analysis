@@ -3,3 +3,4 @@
 /others/.ipynb_checkpoints/
 /ICA/.ipynb_checkpoints/
 /ICA/__pycache__/
+*.pyc

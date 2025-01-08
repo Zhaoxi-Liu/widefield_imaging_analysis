@@ -144,10 +144,10 @@ def plotFluor(path, trial):
     # 读取刺激时间
     stimfile = pd.read_csv(os.path.join(path, "raw", trial + ".csv"), header=None).values
     stim_delay = pd.read_csv(os.path.join(path, "raw", trial + "-470Timestamp.csv"), header=None).values
-    stim_delay = int(stim_delay[0] / 10)
+    stim_delay = int(stim_delay[0] / 100)
     stim = np.zeros(n_frame)
     for i in range(n_frame):
-        stim[i] = stimfile[(i * 10 + stim_delay), 0]
+        stim[i] = stimfile[(i * 100 + stim_delay), 0]
 
     # 绘制刺激时间
     axs[2].fill_between(range(n_frame), stim, color='k')

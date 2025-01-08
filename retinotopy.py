@@ -1,3 +1,4 @@
+#%%
 import NeuroAnalysisTools
 import NeuroAnalysisTools.core.FileTools as ft
 import NeuroAnalysisTools.RetinotopicMapping as rm
@@ -11,8 +12,8 @@ import cv2
 from glob import glob
 from NatMovie_utils import *
 
-# %% set path and parameter
-path_wfield = r'Y:\WF_VC_liuzhaoxi\P73\20240718\retinotopy\process\20240718-161348-wfield'
+#%% set path and parameter
+path_wfield = r'/home/lzx/data/WF_VC_liuzhaoxi/24.07.08_Q20/retinotopy/process/20240708-192659-wfield'
 
 experiment = os.path.basename(path_wfield)[:15]
 rawPath = pjoin(path_wfield, '..\\..\\raw')
@@ -84,7 +85,7 @@ path_ccf_stim = pjoin(path_out, experiment + '-ccf-stim')
 os.makedirs(path_ccf_stim, exist_ok=True)
 
 for direction in ['up', 'down', 'left', 'right']:
-    stim_file = pjoin(r'D:\Zhaoxi\mouse_vision\python-code\retinotopy', 'stim-' + direction + '.mp4')
+    stim_file = pjoin(r'/home/lzx/data/WF_VC_liuzhaoxi/code/WF/others', 'stim-' + direction + '.mp4')
     tif_avg = pjoin(path_out, 'tif', 'avg_' + direction + '.tif')
     avg_ccf_stim_file = pjoin(path_ccf_stim, os.path.basename(tif_avg)[:-4] + '-ccf-stim.mp4')
     merge_ccf_stim(avg_ccf_stim_file, tif_avg, ccf_regions_im, stim_file=stim_file, tif_fps=10, trial_rep=1,

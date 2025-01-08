@@ -3,6 +3,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from os.path import basename as basename
 
+#%%
+def Greconstruct(u,svt,dims = None):
+    import cupy as cp
+    if issparse(u):
+        if dims is None:
+            raise ValueError('Supply dims = [H,W] when using sparse arrays')
+    else:
+        if dims is None:
+            dims = u.shape[:2]
+    u = cp.array(u)
+    svt = cp.array(svt)
+    return cp.dot(u, svt).reshape((*dims, -1)).transpose(-1, 0, 1).squeeze()
+
 # %%
 def sorting_NatMov(SVT, trials_onset, n_movie, movie_len, pre_length=0, after_length=0):
     # SVT: [ncomponent, n_frame]
@@ -22,12 +35,42 @@ def sorting_NatMov(SVT, trials_onset, n_movie, movie_len, pre_length=0, after_le
     return SVT_sorted
 
 
+#%%
+def Gsorting_NatMov(SVT, trials_onset, n_movie, movie_len, pre_length=0, after_length=0):
+    # SVT: [ncomponent, n_frame]
+    import cupy as cp
+    nSVD = SVT.shape[0]
+    n_trials = trials_onset.size
+    n_rep = n_trials // n_movie
+
+    SVT_sorted = cp.empty((nSVD, movie_len + pre_length + after_length, n_movie, n_rep))
+    for i_trial in range(n_trials):
+        i_movie = i_trial // n_rep
+        i_rep = i_trial % n_rep
+        SVT_sorted[:nSVD, :movie_len + pre_length + after_length, i_movie, i_rep] = SVT[:,
+                                                                                  trials_onset[i_trial] - pre_length:
+                                                                                  trials_onset[
+                                                                                      i_trial] + movie_len + after_length]
+
+    return SVT_sorted
+
+
 # %%
 def cal_snr(x, axis1, axis2):
     """
     axis1:重复，axis2:时间。重复axis要在时间axis之后！
     """
     snr = np.nanvar(np.nanmean(x, axis=axis1), axis=axis2) / np.nanmean(np.nanvar(x, axis=axis1), axis=axis2)
+    return snr
+
+
+#%%
+def Gcal_snr(x, axis1, axis2):
+    import cupy as cp
+    """
+    axis1:重复，axis2:时间。重复axis要在时间axis之后！
+    """
+    snr = cp.nanvar(cp.nanmean(x, axis=axis1), axis=axis2) / cp.nanmean(cp.nanvar(x, axis=axis1), axis=axis2)
     return snr
 
 
@@ -432,7 +475,7 @@ def merge2video(out_file, tif_videofile, stim_file, text=''):
 
 
 # %%
-def plot_heatmap(data, xlable=None, ylable=None, cmap='coolwarm', vmin=None, vmax=None, title=None, outfile=None, dpi=300, annot=True):
+def plot_heatmap(data, xlabel=None, ylabel=None, xtitle=None, ytitle=None, cmap='coolwarm', vmin=None, vmax=None, title=None, outfile=None, dpi=300, annot=True):
     import seaborn as sns
     import matplotlib.pyplot as plt
 
@@ -444,17 +487,23 @@ def plot_heatmap(data, xlable=None, ylable=None, cmap='coolwarm', vmin=None, vma
     fig, ax = plt.subplots(figsize=(data.shape[1], data.shape[0]))
     fig.set_facecolor('white')
     # 使用seaborn的heatmap函数来绘制热图
-    sns.heatmap(data, cmap=cmap, vmin=vmin, vmax=vmax, annot=annot, fmt=".6f", annot_kws={"size": 8, "color": 'black'},
-                ax=ax, cbar=True, square=True, linewidths=0)
+    sns.heatmap(data, cmap=cmap, vmin=vmin, vmax=vmax, annot=annot, fmt=".3f", annot_kws={"size": 12, "color": 'black'},
+                ax=ax, cbar=True, square=True, linewidths=0, cbar_kws={'fraction': 0.04, 'pad': 0.03})
+    cbar = ax.collections[0].colorbar 
+    cbar.ax.tick_params(labelsize=15) # 设置colorbar刻度标签的字号 
 
-    if xlable is not None:
-        ax.set_xticklabels(xlable, rotation=45, ha='right', fontsize=10)
-    if ylable is not None:
-        ax.set_yticklabels(ylable, rotation=0, fontsize=10)
+    if xtitle is not None:
+        ax.set_xlabel(xtitle, fontsize=15)
+    if xlabel is not None:
+        ax.set_xticklabels(xlabel, rotation=45, ha='right', fontsize=15)
+    if ytitle is not None:
+        ax.set_ylabel(ytitle, fontsize=15)
+    if ylabel is not None:
+        ax.set_yticklabels(ylabel, rotation=0, fontsize=15)
     plt.gca().invert_yaxis()  # 倒置y轴
 
     if title:
-        ax.set_title(title, fontsize=15)
+        ax.set_title(title, fontsize=20)
     if outfile:
         plt.savefig(outfile, bbox_inches='tight', dpi=dpi)
 

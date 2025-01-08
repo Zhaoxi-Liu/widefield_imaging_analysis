@@ -1,24 +1,6 @@
 from wfield import *
 from tifffile import imread, imwrite
 
-# path = r'Y:\WF_VC_liuzhaoxi\24.05.20_H78\retinotopy\process\20240520-194029-retinotopy'
-# frames_average = path[:-10]+'wfield\\frames_average.npy'
-
-path_wfield = r'Y:\WF_VC_liuzhaoxi\24.06.20_H78\moving-bar\process\20240620-172655-wfield'
-experiment = os.path.basename(path_wfield)[:15]
-path_out = pjoin(path_wfield, '..', experiment + '-natural-movie')
-frames_average = pjoin(r'Y:\WF_VC_liuzhaoxi\24.06.20_H78\moving-bar\process\20240620-172655-wfield', 'frames_average.npy')
-avg = np.load(frames_average)[0]
-
-#%% cor470
-# tif_list = glob(pjoin(path, 'tif/avg*.tif'))
-# for tif in tif_list:
-#     img = imread(tif)
-#     cor470 = (img*avg+avg).astype(np.uint16)
-#     imwrite(tif[:-4]+'_cor470.tif', cor470, imagej=True)
-#     print('finish '+tif[:-4]+'_cor470.tif')
-#
-# print('\nfinish all')
 
 #%%
 def rolling_mean_of_image_ls(image_array, window_size=5):
@@ -66,6 +48,28 @@ def enhance_df_f(df_f, mean_image):
     # image_stack = np.array(average_ls)
     image_stack = df_f * mean_image + mean_image + 10 * rolling_means
     return image_stack
+
+
+'''
+#%%
+path_wfield = r'Y:\WF_VC_liuzhaoxi\24.06.20_H78\moving-bar\process\20240620-172655-wfield'
+experiment = os.path.basename(path_wfield)[:15]
+path_out = pjoin(path_wfield, '..', experiment + '-natural-movie')
+frames_average = pjoin(r'Y:\WF_VC_liuzhaoxi\24.06.20_H78\moving-bar\process\20240620-172655-wfield', 'frames_average.npy')
+avg = np.load(frames_average)[0]
+
+
+#%% cor470
+tif_list = glob(pjoin(path, 'tif/avg*.tif'))
+for tif in tif_list:
+    img = imread(tif)
+    cor470 = (img*avg+avg).astype(np.uint16)
+    imwrite(tif[:-4]+'_cor470.tif', cor470, imagej=True)
+    print('finish '+tif[:-4]+'_cor470.tif')
+
+print('\nfinish all')
+
+
 #%% enhance
 # tif_list = glob(pjoin(path, r'tif-cor470\*cor470.tif'))
 tif_list = glob(pjoin(path_out, r'20240520-180021-tif-rep\*rep.tif'))
@@ -86,3 +90,6 @@ for tif_file in tif_list:
     # tif_reshape2 = np.concatenate(np.split(tif_reshape1, 2, axis=0), axis=-2).squeeze()
     imwrite(tif_file[:-4]+'-reshape.tif', tif_reshape1, imagej=True)
     print('finish reshape '+os.path.basename(tif_file))
+
+
+'''

@@ -77,6 +77,7 @@ def phasemap(path_wfield, nrepeats=10, post_trial=3, export_ave_tif=True, export
     post_trial = post_trial  # 刺激消失后多取几秒
     path_out = pjoin(path_wfield, '..', os.path.basename(path_wfield)[:16] + 'retinotopy')
     os.makedirs(path_out, exist_ok=True)
+    os.makedirs(pjoin(path_out,'tif'), exist_ok=True)
 
     ### load data
     trials = pd.read_csv(pjoin(path_wfield, "trials.csv"), header=None, dtype=int).values
