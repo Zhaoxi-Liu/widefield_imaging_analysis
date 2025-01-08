@@ -44,3 +44,29 @@ for filename in files:
         print(f"Renamed '{filename}' to '{new_filename}'")
 
 
+#%% 批量复制文件夹
+import os
+from os.path import join as pjoin
+from glob import glob
+import shutil
+
+file_ls = glob(pjoin(r'Y:\WF_VC_liuzhaoxi\*\natural-movie-reverse'))
+print('\n'.join(file_ls))
+
+#%%
+# 目标目录
+new_folder = r'Y:\WF_VC_liuzhaoxi\natural-movie data'
+# 确保目标目录存在
+os.makedirs(new_folder, exist_ok=True)
+# 复制文件夹
+for folder in file_ls:
+    # 获取文件夹名称
+    folder_name = os.path.basename(folder)
+    # 目标路径
+    new_path = pjoin(new_folder, folder_name)
+    # 复制文件夹
+    shutil.copytree(folder, new_path)
+
+print("复制完成！")
+
+
