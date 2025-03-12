@@ -1,5 +1,51 @@
+from tqdm import tqdm
+from wf_utils import filename2int
+
 import h5py
 import numpy as np
+import tifffile as tiff
+
+
+def crop_save(folder, parameters, save_folder=None, n_preview=None, **kwargs):
+    '''
+    folder: the folder containing the images to crop images and save as tiff,
+    there may be more than one folder for each channel
+    parameters: the cropping parameters, tuples
+    save_folder: the folder to save the cropped images
+    '''
+    chan1_folder_ls = glob(os.path.join(folder, '*-470'))
+    chan2_folder_ls = glob(os.path.join(folder, '*-405'))
+
+    top, left, bottom, right = parameters
+
+    chan1_image_ls = []
+    for sub_folder in chan1_folder_ls:
+        image_ls = glob(os.path.join(sub_folder, '*.tif'))
+        # to make sure the images are in the right order
+        image_ls = sorted(image_ls, key=filename2int)
+        chan1_image_ls.extend(image_ls)
+    chan2_image_ls = []
+    for sub_folder in chan2_folder_ls:
+        image_ls = glob(os.path.join(sub_folder, '*.tif'))
+        image_ls = sorted(image_ls, key=filename2int)
+        chan2_image_ls.extend(image_ls)
+    # print(len(chan1_image_ls), len(chan2_image_ls))
+
+    n_frames = np.min([len(chan1_image_ls), len(chan2_image_ls)])
+    print(n_frames)
+    
+    if save_folder is None:
+        tiff_path = os.path.join(folder, 'merged.tif')
+    n_write = n_frames if n_preview is None else n_preview
+    with tiff.TiffWriter(tiff_path, bigtiff=True, imagej=True) as tif:
+        for i in tqdm(range(n_write)):
+            image1 = tiff.imread(chan1_image_ls[i])
+            image2 = tiff.imread(chan2_image_ls[i])
+            image1_cropped = image1[top:bottom, left:right]
+            image2_cropped = image2[top:bottom, left:right]
+            _merge = np.stack([image1_cropped, image2_cropped],
+                axis=0).astype(np.uint16)
+            tif.write(_merge, contiguous=True)
 
 def h5py_write(file_path, data_dict, overwrite=False):
     '''
