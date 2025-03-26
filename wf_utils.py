@@ -64,28 +64,28 @@ def log_progress(sequence, every=None, size=None, name='Items'):
             index=str(index or '?')
         )
 
-def denoise(y):
+
+def find_outliers(y, std_thr = 5):
     # 计算观测值与前后数据点的差
     diff_y_prev = np.diff(y, prepend=np.nan)
     diff_y_next = np.diff(y, append=np.nan)
-    # 计算标准差的3倍
-    threshold = 3 * np.std(np.diff(y))
-    # 找到差值都大于3倍标准差的数据点的索引
-    outliers_indices = np.where((np.abs(diff_y_prev) > threshold) & (np.abs(diff_y_next) > threshold))[0]
+    # 计算标准差的std_thr倍
+    threshold = std_thr * np.std(y)
+    # 找到差值都大于std_thr倍标准差的数据点的索引
+    outliers_indices = np.where((np.abs(diff_y_prev) > threshold) & (np.abs(diff_y_next) > threshold))
+    return outliers_indices
+
+
+def denoise(y, std_thr = 5):
+    outliers_indices = find_outliers(y, std_thr = std_thr)
     # 用相邻两个值的平均数替代异常值
     for i in outliers_indices:
         y[i] = (y[i-1] + y[i+1]) / 2
-
     return y
 
-def plot_outliers(x, y, ax, label):
-    # 分别计算观测值与前后数据点的差
-    diff_y_prev = np.concatenate(([np.nan], np.diff(y)))
-    diff_y_next = np.concatenate((np.diff(y), [np.nan]))
-    # 计算标准差的3倍
-    threshold = 8 * np.std(np.diff(y))
-    # 找到前后差值都大于3倍标准差的数据点
-    outliers_indices = np.where((np.abs(diff_y_prev) > threshold) & (np.abs(diff_y_next) > threshold))
+
+def plot_outliers(x, y, ax, label, std_thr = 5):
+    outliers_indices = find_outliers(y, std_thr = std_thr)
     # 在折线图上标记异常点
     ax.plot(x[outliers_indices], y[outliers_indices], 'ko', label=label + ' Outliers', fillstyle='none', markerfacecolor='none')
     # 标出异常点的横坐标
@@ -123,7 +123,7 @@ def plotFluor(path, trial):
     fig, axs = plt.subplots(3, 1, figsize=(12, 6), gridspec_kw={'height_ratios': [1.5, 1, 0.2]})
 
     # 绘制双通道荧光值
-    axs[0].plot(y_405, color='#b71c1c', label='405', linewidth=0.5)
+    axs[0].plot(y_405, color='purple', label='405', linewidth=0.5)
     axs[0].plot(y_470, color='#00796b', label='470', linewidth=0.5)
     plot_outliers(np.arange(n_frame), y_405, axs[0], '405')
     plot_outliers(np.arange(n_frame), y_470, axs[0], '470')
@@ -132,6 +132,7 @@ def plotFluor(path, trial):
     axs[0].legend(loc='upper right', prop={'size': 8})
     axs[0].grid(True)
     axs[0].set_xlim([0, n_frame])
+    axs[0].set_xticks(range(0, n_frame, n_frame//20))
 
     # 绘制470-405的荧光值
     axs[1].plot(y_470_405_scaled, color='#0097a7', linewidth=0.5)
@@ -140,20 +141,22 @@ def plotFluor(path, trial):
     axs[1].set_title('scaled 470-405', fontsize=12)
     axs[1].grid(True)
     axs[1].set_xlim([0, n_frame])
+    axs[1].set_xticks(range(0, n_frame, n_frame//20))
 
     # 读取刺激时间
     stimfile = pd.read_csv(os.path.join(path, "raw", trial + ".csv"), header=None).values
     stim_delay = pd.read_csv(os.path.join(path, "raw", trial + "-470Timestamp.csv"), header=None).values
     stim_delay = int(stim_delay[0] / 100)
-    stim = np.zeros(n_frame)
-    for i in range(n_frame):
+    n_stimframe = min(stimfile.shape[0]//100-1, n_frame)
+    stim = np.zeros(n_stimframe)
+    for i in range(n_stimframe):
         stim[i] = stimfile[(i * 100 + stim_delay), 0]
 
     # 绘制刺激时间
-    axs[2].fill_between(range(n_frame), stim, color='k')
+    axs[2].fill_between(range(n_stimframe), stim, color='k')
     axs[2].set_xlim([0, n_frame])
     axs[2].axis('off')
-    axs[2].annotate('Stimuli', xy=(-0.1, 0.5), xycoords='axes fraction',
+    axs[2].annotate('trigger', xy=(-0.1, 0.5), xycoords='axes fraction',
                     fontsize=12, rotation=0, va='center')
 
     # 添加总标题

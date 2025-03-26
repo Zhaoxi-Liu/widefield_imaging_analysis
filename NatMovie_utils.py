@@ -6,12 +6,8 @@ from os.path import basename as basename
 #%%
 def Greconstruct(u,svt,dims = None):
     import cupy as cp
-    if issparse(u):
-        if dims is None:
-            raise ValueError('Supply dims = [H,W] when using sparse arrays')
-    else:
-        if dims is None:
-            dims = u.shape[:2]
+    if dims is None:
+        dims = u.shape[:2]
     u = cp.array(u)
     svt = cp.array(svt)
     return cp.dot(u, svt).reshape((*dims, -1)).transpose(-1, 0, 1).squeeze()
@@ -559,6 +555,8 @@ def plot_pca(data_pca, n_patch, n_movie, patch_list, movie_name_list, title='', 
 #%%
 def subplot_timecourse(data, patch_list, movie_name_list, title='', outpath=None, plot_rep=False, pre_length=0,
              n_frame=None, dpi=300):
+    "data.shape = (n_patch, n_movie, timecourse, n_rep)"
+    
     n_patch = data.shape[0]
     n_movie = data.shape[1]
     fig = plt.figure(figsize=(int(n_movie * 10), int(n_patch * 3)))

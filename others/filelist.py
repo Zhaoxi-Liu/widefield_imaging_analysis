@@ -69,4 +69,35 @@ for folder in file_ls:
 
 print("复制完成！")
 
+## another example
 
+path_out = 'Z:\MouseWatch'
+os.makedirs(path_out, exist_ok=True)
+
+for path_wfield in path_list: 
+    print('\n\n'+path_wfield)
+    experiment = os.path.basename(path_wfield)[:15]
+    mouse = os.path.normpath(path_wfield).split(os.sep)[2].split('_')[1]
+    print(experiment, mouse)
+    trialfile = pd.read_csv(pjoin(path_wfield, 'trials.csv'), header=None).values.astype(int)
+    # filter incomplete experiments
+    if trialfile.shape[0] < 70:
+        print("This experiment is not complete, skip.")
+        continue
+
+    path_event = pjoin(path_wfield, '../../raw/',experiment+'-event')
+    # extract stim inf from file path
+    parts = path_wfield.split('\\')
+    stim = parts[3]
+    path_event_new = pjoin(path_out, f'{stim}_{experiment}_face')
+    trialfile_new = pjoin(path_out, f'{stim}_{experiment}_trials.csv')
+    print(path_event_new, '\n',trialfile_new)
+    # copy folder
+    shutil.copytree(path_event, path_event_new)
+    print(f'finish {path_event_new}')
+    # copy file
+    shutil.copyfile(pjoin(path_wfield, 'trials.csv'), trialfile_new)
+    print(f'finish {trialfile_new}')
+    
+print("文件复制完成！")
+    
