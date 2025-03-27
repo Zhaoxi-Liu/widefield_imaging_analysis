@@ -1,6 +1,9 @@
 from glob import glob
 from os.path import join as pjoin
+from roifile import ImagejRoi
+from skimage import draw
 from tifffile import imread
+from tqdm import tqdm
 from wf_utils import filename2int, log_progress
 from ipywidgets import interact
 
@@ -11,10 +14,10 @@ import os
 def correct_cross_outlier(bin_path, outlier_index_470, outlier_index_405, overwrite=False):
     '''
     Correct the outliers frames in the merged tiff file.
-    Parameters:
-        bin_path: string, the path of the bin file.
-        outlier_index_405: numpy array, the index of the outliers in 405 channel.
-        outlier_index_470: numpy array, the index of the outliers in 470 channel.
+
+    bin_path: string, the path of the bin file.
+    outlier_index_405: numpy array, the index of the outliers in 405 channel.
+    outlier_index_470: numpy array, the index of the outliers in 470 channel.
     '''
 
     if (len(outlier_index_470) > 0) or (len(outlier_index_405) > 0):
@@ -25,7 +28,7 @@ def correct_cross_outlier(bin_path, outlier_index_470, outlier_index_405, overwr
         images = np.memmap(bin_path, dtype=dtype, mode='r+', shape=shape)
         if len(outlier_index_470) > 0:
             for i in outlier_index_470:
-                images[i, 0, :, :] = 0.5*images[i-1, 0, :, :] + 0.5*images[i+1, 0, :, :]
+                images[i, 0, :, :] = 0.5*images[i-1, 0, :, :] + 0.5*images[i+2, 0, :, :]
         if len(outlier_index_405) > 0:
             for i in outlier_index_405:
                 print(i)
@@ -160,6 +163,31 @@ def display_wrapper(images, cmap='gray', figsize=(5,5), colorbar=False):
 
     frame_slider = interact(display_images, frame=(0, len(images)-1, 1))
     display(frame_slider)
+
+def extract_traces(data, roi_masks):
+    '''
+    data: np.ndarray, shape (n_frames, height, width)
+    roi_masks: list of np.ndarray, each shape (2, n_pixels)
+    '''
+    traces = []
+    for _mask in tqdm(roi_masks):
+        _sum = data[:, _mask[0], _mask[1]].sum(axis=1)
+        
+        traces.append(_sum / _mask.shape[1])
+    traces = np.array(traces)
+    return traces
+
+def get_roi_masks(rois_file):
+    rois = ImagejRoi.fromfile(rois_file)
+    roi_masks = []
+    for roi in rois:
+        center = (roi.left + roi.right) / 2, (roi.top + roi.bottom) / 2
+        width = roi.right - roi.left
+        height = roi.bottom - roi.top
+        rr, cc = draw.ellipse(center[1], center[0], height/2, width/2)
+        
+        roi_masks.append(np.vstack([rr, cc]))
+    return roi_masks
 
 def image2stack(folder_path, preview=None):
     '''

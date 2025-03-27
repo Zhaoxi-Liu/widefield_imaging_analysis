@@ -117,3 +117,48 @@ def plot_response_polar(data, window=[0, 10], title=None):
     # ax_polar.tick_params(labelbottom=False)
     ax_polar.tick_params(labelleft=False)
     plt.suptitle(title)
+
+def plot_traces(data, data_rate=None, figsize=(15, 5), title=None,
+    xlim=None, ylim=None, label=None, **kwargs):
+    '''
+    Plot the traces of the data.
+    data: np.array, shape=(nframes, ntrials)
+    data_rate: int, the rate of the data, default is None
+    label: None or list of str, the label of the traces
+    '''
+    fontsize = np.min(figsize) * 3
+    # plt.rc('axes', labelsize=fontsize)
+    plt.rc('xtick', labelsize=fontsize)
+    plt.rc('ytick', labelsize=fontsize)
+    fig, ax = plt.subplots(figsize=figsize)
+    if data_rate is not None:
+        x = np.arange(data.shape[0]) / data_rate
+    else:
+        x = np.arange(data.shape[0])
+
+    for i in range(data.shape[1]):
+        if label is not None:
+            ax.plot(x, data[:, i], label=label[i], lw=1)
+        else:
+            ax.plot(x, data[:, i], lw=1)
+
+    if data_rate is not None:
+        ax.set_xlabel('Time (s)')
+    else:
+        if 'xlabel' in kwargs:
+            ax.set_xlabel(kwargs['xlabel'])
+
+    if title is not None:
+        ax.set_title(title)
+    if xlim is not None:
+        ax.set_xlim(left=xlim[0], right=xlim[1])
+    else:
+        ax.set_xlim(left=-x[-1]*0.01, right=x[-1]*1.01)
+    if ylim is not None:
+        ax.set_ylim(bottom=ylim[0], top=ylim[1])
+    if label is not None:
+        ax.legend()
+    if 'ylabel' in kwargs:
+        ax.set_ylabel(kwargs['ylabel'])
+
+    plt.show()
