@@ -224,6 +224,19 @@ def detrend(data, window=300):
     detrended = (data - moving_average(data, window=window)) + data_mean
     return detrended
 
+def dff_images(data: np.ndarray) -> np.ndarray:
+    """
+    Calculate the dF/F of each pixel in a image stack.
+    data: 3D numpy array (time, height, width)
+    Returns a 3D numpy array with the same shape as data.
+    """
+    data_shape = data.shape
+    data_2d = data.reshape(data_shape[0], -1) # (time, height*width)
+    data_detrended = detrend(data_2d)
+    data_dff = calculate_dff(data_detrended)
+    images_dff = data_dff.reshape(data_shape) # (time, height, width)
+    return images_dff
+
 def display_wrapper(images, cmap='gray', figsize=(5,5), colorbar=False):
     # max = np.max(images) * 0.85
     # min = np.min(images) + abs(np.min(images) * 0.15)
@@ -282,7 +295,8 @@ def image2stack(folder_path, preview=None):
 
 def moving_average(data, window=300, axis=0):
     '''
-    data: numpy.ndarray, the first dimension is samples, the second dimension is channels
+    data: numpy.ndarray, the first dimension is samples, the second dimension is
+    channels
     window: int
     '''
     from scipy.ndimage import uniform_filter1d

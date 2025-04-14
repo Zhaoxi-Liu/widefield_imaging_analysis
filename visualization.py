@@ -23,7 +23,7 @@ def plot_dff(data, data_rate=None, figsize=(15, 5), title=None,
     labels: None or list of str, the labels of the traces
     step: used to separate the dff traces
     '''
-    fontsize = np.min(figsize) * 2.5
+    fontsize = 15
     # plt.rc('axes', labelsize=fontsize)
     plt.rc('xtick', labelsize=fontsize)
     plt.rc('ytick', labelsize=fontsize)
@@ -255,17 +255,48 @@ def show_array_images(images, n_cols=5, cmap='gray', **kwargs):
             ax.set_title(f'Component {i}')
         else:
             ax.axis('off')
-        ax.spines[['bottom', 'right']].set_visible(True)
-        ax.spines[['bottom', 'right']].set_color('gray')
+        
         ax.spines[['top', 'left']].set_visible(False)
-        ax.grid(True, color='gray')
+        if kwargs.get('grid', True):
+            ax.grid(True, color='gray')
+            ax.spines[['bottom', 'right']].set_visible(True)
+            ax.spines[['bottom', 'right']].set_color('gray')
+        else:
+            ax.spines[['bottom', 'right']].set_visible(False)    
         ax.set_xticklabels([])
         ax.set_yticklabels([])
         ax.tick_params(axis='both', bottom=False, left=False, )
     fig.colorbar(im, ax=axs, orientation='vertical', fraction=0.03, shrink=0.8,
         pad=0.01)
-    plt.suptitle(title) if kwargs.get('title') else None
+    plt.suptitle(kwargs.get('title')) if kwargs.get('title') else None
     plt.show()
+
+def show_images(images, vlim=None, title=None, idential_colorbar=False):
+    '''
+    Show a list of images in a grid.
+    images: list
+    '''
+    nrows = 1
+    ncols = len(images)
+
+    if vlim is None:
+        vmin = np.array([image.min() for image in images]).min()
+        vmax = np.array([image.max() for image in images]).max()
+
+    fig, axes = plt.subplots(nrows, ncols, figsize=(7*ncols, 7*nrows))
+    for i, ax in enumerate(axes):
+        if idential_colorbar:
+            cb = ax.imshow(images[i], cmap='hot', clim=(0, vmax))
+        else:
+            cb = ax.imshow(images[i], cmap='hot')
+        ax.grid()
+        
+    if title is not None:
+        for i, ax in enumerate(axes):
+            ax.set_title(title[i])    
+    if idential_colorbar:
+        fig.colorbar(cb, ax=axes, orientation='vertical', fraction=0.05,
+            shrink=0.5)
 
 def show_one_image(image: np.ndarray, 
     cmap='gray', colorbar=False):
