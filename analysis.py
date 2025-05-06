@@ -111,9 +111,12 @@ def correct_cross_outlier(bin_path, outlier_index_470, outlier_index_405, overwr
 
     return images
 
-def correct_lum_outlier(bin_path, outlier_index_470, outlier_index_405, plot=True, overwrite=False):
+def correct_lum_outlier(bin_path, outlier_index_470, outlier_index_405,
+    plot=True, overwrite=False):
     '''
     Correct the luminance outliers frames in the merged tiff file.
+    outlier_index_xxx: list of tuples, each tuple contains the start and end
+    index of the outlier segments.
     '''
     if (outlier_index_470 is not None) or (outlier_index_405 is not None):
         print('There are luminance outliers frames need to be corrected!')
@@ -121,17 +124,18 @@ def correct_lum_outlier(bin_path, outlier_index_470, outlier_index_405, plot=Tru
         dtype = bin_name.split('_')[-1]
         shape = tuple([int(i) for i in bin_name.split('_')[:-1]])
         images = np.memmap(bin_path, dtype=dtype, mode='r+', shape=shape)
+
         if outlier_index_470 is not None:
-            for i in range(outlier_index_470.shape[0]):
-                start, end = outlier_index_470
-                images[start:end+1, 0, :, :] = 0.5*images[start-1, 0, :, :] + 0.5*images[end+1, 0, :, :]
+            for i in range(len(outlier_index_470)):
+                start, end = outlier_index_470[i]
+                images[start:end+1, 0, :, :] = 0.5*images[start-1, 0, :, :] + \
+                    0.5*images[end+1, 0, :, :]
+
         if outlier_index_405 is not None:
-            for i in range(outlier_index_405.shape[0]):
-                start, end = outlier_index_405
-                images[start:end+1, 1, :, :] = 0.5*images[start-1, 1, :, :] + 0.5*images[end+1, 1, :, :]
-        if overwrite:
-            images.flush()
-            print('Luminance outliers frames corrected!')
+            for i in range(len(outlier_index_405)):
+                start, end = outlier_index_405[i]
+                images[start:end+1, 1, :, :] = 0.5*images[start-1, 1, :, :] + \
+                    0.5*images[end+1, 1, :, :]
     else:
         print('No luminance outliers frames to correct!')
 
@@ -146,7 +150,10 @@ def correct_lum_outlier(bin_path, outlier_index_470, outlier_index_405, plot=Tru
         ax.legend()
         plt.title('correct_lum_outlier')
         plt.show()
-        
+
+    if overwrite:
+        images.flush()
+        print('Luminance outliers frames corrected!')
     return images
 
 def detect_cross_outlier(time_stamp_470, time_stamp_405, time_thr=10):
@@ -164,33 +171,61 @@ def detect_cross_outlier(time_stamp_470, time_stamp_405, time_thr=10):
     else: # 405 channel starts first
         return time_outliers_idx_advance, time_outliers_idx_lag
 
+def detect_time_outliers(time_stamp_470, time_stamp_405, interval, thr=0.1):
+    '''
+    detect the cross-channel outliers based on the time stamps of 405 and
+    470 channels.
+    cross-channel: the 405 or 470 channel frames wrongly recoreded.
+    thr: the threshold of the vairance of the interval between the 405
+    and 470 channels, percentage of the interval.
+    '''
+    time_diff_470 = np.diff(time_stamp_470)
+    time_diff_405 = np.diff(time_stamp_405)
+    time_outliers_idx_470 = np.where(time_diff_470 > (interval*(1+thr)))[0]
+    # print('The outliers of 470 channel:', time_outliers_idx_470)
+    time_outliers_idx_405 = np.where(time_diff_405 > (interval*(1+thr)))[0]
+    # print('The outliers of 405 channel:', time_outliers_idx_405)
+    return time_outliers_idx_470, time_outliers_idx_405
+
 def detect_lum_outlier(mean_values, lum_thr_coef=0.3, plot=True):
     '''
     Detect outliers in the mean_values array.
     Parameters:
         mean_values: numpy array, the mean values of the image stack. 
-        The first column is the mean values of 470 channel, the second column is the mean values of 405 channel.
-        lum_thr_coef: luminance threshold coefficient for detecting luminance outliers.
-        # diff_thr_coef=0.1, diff_thr_coef: float, the threshold coefficient for detecting cross-channel outliers.
+        The first column is the mean values of 470 channel, the second column
+        is the mean values of 405 channel.
+        lum_thr_coef: luminance threshold coefficient for detecting luminance
+        outliers.
     Returns:
         outlier_index: numpy array, the index of the outliers, 
         each row contains the start and end index of the outliers,
         the value of mean_values[start:end] is considered as outliers.
     '''
     # detecting luminance outliers
-    outlier_lum_470 = mean_values[:, 0] < np.mean(mean_values[:, 0])*lum_thr_coef
-    outlier_lum_idx_470 = np.where(outlier_lum_470)[0]
-    if len(outlier_lum_idx_470) > 0:
-        # Frames before and after the detected outliers are also considered as outliers,
+    outlier_lum_470 = mean_values[:, 0] < (np.mean(mean_values[:, 0])
+        * lum_thr_coef)
+    _index = np.where(outlier_lum_470)[0]
+    # split the index into continuous segments
+    _segments_index = np.where(np.diff(_index) != 1)[0] + 1
+    _segments = np.split(_index, _segments_index)
+    outlier_lum_idx_470 = []
+    for k, g in enumerate(_segments):
+        # Frames before and after the detected outliers are also considered as
+        # outliers,
         # Output index is the start and end index of the outliers,
         # Note the frame of the end index is normal, so add 2 to the end index.
-        outlier_lum_idx_470 = np.array((outlier_lum_idx_470[0]-1, outlier_lum_idx_470[-1]+2))
+        outlier_lum_idx_470.append((g[0]-1, g[-1]+2)) if len(g) > 0 else None
 
-    outlier_lum_405 = mean_values[:, 1] < np.mean(mean_values[:, 1])*lum_thr_coef
-    outlier_lum_idx_405 = np.where(outlier_lum_405)[0]
-    if len(outlier_lum_idx_405) > 0:
-        outlier_lum_idx_405 = np.array((outlier_lum_idx_405[0]-1, outlier_lum_idx_405[-1]+2))
-
+    outlier_lum_405 = mean_values[:, 1] < (np.mean(mean_values[:, 1])
+        * lum_thr_coef)
+    _index = np.where(outlier_lum_405)[0]
+    # split the index into continuous segments
+    _segments_index = np.where(np.diff(_index) != 1)[0] + 1
+    _segments = np.split(_index, _segments_index)
+    outlier_lum_idx_405 = []
+    for k, g in enumerate(_segments):
+        outlier_lum_idx_405.append((g[0]-1, g[-1]+2)) if len(g) > 0 else None
+        
     outlier_index = [outlier_lum_idx_470, outlier_lum_idx_405]
 
     if plot:
@@ -198,13 +233,9 @@ def detect_lum_outlier(mean_values, lum_thr_coef=0.3, plot=True):
         ax.plot(mean_values[:, 0], label='470', color='red')
         ax.plot(mean_values[:, 1], label='405', color='black')
         ax.set_xlim(0, len(mean_values))
-        # for idx in outlier_index[0]:
-        #     ax.axvline(x=idx, color='r', linestyle='--')
-        # for idx in outlier_index[1]:
-        #     ax.axvline(x=idx, color='g', linestyle='--')
-        # ax.hlines(np.mean(mean_values[:, 0])*lum_thr_coef, 0, len(mean_values), color='r', linestyle='--')
         if len(outlier_lum_idx_470) > 0 or len(outlier_lum_idx_405) > 0:
-            ax.hlines(np.mean(mean_values[:, 1])*lum_thr_coef, 0, len(mean_values), color='g', linestyle='--')
+            ax.hlines(np.mean(mean_values[:, 1])*lum_thr_coef, 0, 
+                len(mean_values), color='g', linestyle='--')
         ax.legend()
         plt.title('detect_lum_outlier')
     
