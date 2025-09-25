@@ -5,7 +5,7 @@
       <excludeFolder url="file://$MODULE_DIR$/.ipynb_checkpoints" />
       <excludeFolder url="file://$MODULE_DIR$/ICA/.ipynb_checkpoints" />
     </content>
-    <orderEntry type="jdk" jdkName="integrate" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="wfield" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">

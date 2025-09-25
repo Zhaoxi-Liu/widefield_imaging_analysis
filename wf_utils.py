@@ -146,7 +146,7 @@ def plotFluor(path, trial):
     # 读取刺激时间
     stimfile = pd.read_csv(os.path.join(path, "raw", trial + ".csv"), header=None).values
     stim_delay = pd.read_csv(os.path.join(path, "raw", trial + "-470Timestamp.csv"), header=None).values
-    stim_delay = int(stim_delay[0] / 100)
+    stim_delay = int(stim_delay[0])
     n_stimframe = min(stimfile.shape[0]//100-1, n_frame)
     stim = np.zeros(n_stimframe)
     for i in range(n_stimframe):
