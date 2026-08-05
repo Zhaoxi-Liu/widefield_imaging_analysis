@@ -105,6 +105,49 @@ def plot_borders(patches, plotAxis=None, title=None, zoom=1,
 
 
 # %%
+def plot1heatmap(movie_data, path_outfile=None, title=None, vmin=None, vmax=None, area_name=None,
+                        cmap='hot', colorbar_name=None, pixel_um=None, patches=None, ccf_regions=None, ccf_color='w'):
+        fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+        if vmin is None:
+            vmin = np.min(movie_data)
+        if vmax is None:
+            vmax = np.max(movie_data)
+
+        img = plt.imshow(movie_data, cmap=cmap, interpolation='nearest', vmin=vmin, vmax=vmax)
+        cbar = plt.colorbar(shrink=0.6)
+        if colorbar_name is not None:
+            cbar.ax.set_title(colorbar_name, fontsize=12,loc='left', fontweight='normal')  # 添加colorbar名称
+        if pixel_um is not None:
+            # Calculate the length of the scale line in pixels
+            scale_line_length = 1e3 / pixel_um
+            line = plt.Line2D([0, 0 + scale_line_length], [movie_data.shape[0] - 10, movie_data.shape[0] - 10], color='white',
+                            linewidth=2)
+            plt.gca().add_line(line)
+            plt.text(scale_line_length / 2, movie_data.shape[0] + 30, '1mm', color='black', fontsize=12, ha='center')
+        if patches:
+            # 调用plot_borders函数在当前轴上画边界
+            plot_borders(patches, plotAxis=ax, title=None, zoom=1,
+                        borderWidth=1, isColor=False, plotName=True, fontSize=8)
+        if ccf_regions is not None:
+            for idx, r in ccf_regions.iterrows():
+                ax.plot(r['left_x'], r['left_y'], ccf_color, lw=0.2)
+                ax.plot(r['right_x'], r['right_y'], ccf_color, lw=0.2)
+                if area_name == True:
+                    ax.text(r.left_center[0], r.left_center[1], r.acronym, color=ccf_color, va='center', fontsize=4, alpha=1,
+                        ha='center')
+
+        ax.axis('off')
+
+        if title:
+            plt.title(title, fontsize=18)
+        fig.set_facecolor('white')
+        # plt.tight_layout(h_pad=0.5, w_pad=0, rect=[0, 0, 1, 0.97])
+        if path_outfile is not None:
+            plt.savefig(path_outfile, bbox_inches='tight')
+        plt.show()
+
+
+# %%
 def subplot_movie_heatmap_(movie_data, n_rows, n_cols, movie_name_list, path_outfile=None, title=None, vmin=None, vmax=None, cmap='hot',
                     pixel_um=None, patches=None, ccf_regions=None, ccf_color='w', dpi=200):
     if vmin is None:
@@ -154,7 +197,7 @@ def subplot_movie_heatmap_(movie_data, n_rows, n_cols, movie_name_list, path_out
 # %%
 def subplot_movie_heatmap(movie_data, n_rows, n_cols, movie_name_list, path_outfile=None, title=None, vmin=None, vmax=None,
                           cmap='hot', pixel_um=None, patches=None, ccf_regions=None, ccf_color='w'):
-    fig = plt.figure(figsize=(15, 12))
+    fig = plt.figure(figsize=(n_cols*3+1, n_rows*3))
     gs = fig.add_gridspec(n_rows, n_cols + 1, width_ratios=[1] * n_cols + [0.05])  # 添加一列给colorbar
     if vmin is None:
         vmin = np.min(movie_data)
@@ -170,10 +213,10 @@ def subplot_movie_heatmap(movie_data, n_rows, n_cols, movie_name_list, path_outf
                 if pixel_um is not None:
                     # Calculate the length of the scale line in pixels
                     scale_line_length = 1e3 / pixel_um
-                    line = plt.Line2D([0, 0 + scale_line_length], [movie_data.shape[1] - 4, movie_data.shape[1] - 4], color='white',
+                    line = plt.Line2D([0, 0 + scale_line_length], [movie_data.shape[0] - 8, movie_data.shape[0] - 8], color='white',
                                       linewidth=2)
                     plt.gca().add_line(line)
-                    plt.text(scale_line_length / 2, movie_data.shape[1] + 15, '1mm', color='black', fontsize=12, ha='center')
+                    plt.text(scale_line_length / 2, movie_data.shape[1] + 25, '1mm', color='black', fontsize=12, ha='center')
                 if patches:
                     # 调用plot_borders函数在当前轴上画边界
                     plot_borders(patches, plotAxis=ax, title=None, zoom=1,
@@ -471,35 +514,32 @@ def merge2video(out_file, tif_videofile, stim_file, text=''):
 
 
 # %%
-def plot_heatmap(data, xlabel=None, ylabel=None, xtitle=None, ytitle=None, cmap='coolwarm', vmin=None, vmax=None, title=None, outfile=None, dpi=300, annot=True):
+def plot_heatmap(data, xlabel=None, ylabel=None, xtitle=None, ytitle=None, cmap='coolwarm', vmin=None, vmax=None, center=None, title=None, outfile=None, dpi=300, annot=True):
     import seaborn as sns
     import matplotlib.pyplot as plt
-
-    if vmin == None:
-        vmin = data.min()
-    if vmax == None:
-        vmax = data.max()
 
     fig, ax = plt.subplots(figsize=(data.shape[1], data.shape[0]))
     fig.set_facecolor('white')
     # 使用seaborn的heatmap函数来绘制热图
-    sns.heatmap(data, cmap=cmap, vmin=vmin, vmax=vmax, annot=annot, fmt=".3f", annot_kws={"size": 12, "color": 'black'},
+    sns.heatmap(data, cmap=cmap, vmin=vmin, vmax=vmax, center=center, annot=annot, fmt=".2f", annot_kws={"size": 14, "color": 'black'},
                 ax=ax, cbar=True, square=True, linewidths=0, cbar_kws={'fraction': 0.04, 'pad': 0.03})
     cbar = ax.collections[0].colorbar 
-    cbar.ax.tick_params(labelsize=15) # 设置colorbar刻度标签的字号 
+    cbar.ax.tick_params(labelsize=20) # 设置colorbar刻度标签的字号 
 
     if xtitle is not None:
-        ax.set_xlabel(xtitle, fontsize=15)
+        ax.set_xlabel(xtitle, fontsize=20)
     if xlabel is not None:
-        ax.set_xticklabels(xlabel, rotation=45, ha='right', fontsize=15)
+        # ax.set_xticklabels(xlabel, rotation=45, ha='right', fontsize=20)
+        ax.set_xticklabels(xlabel, fontsize=20, rotation=45, )
+
     if ytitle is not None:
-        ax.set_ylabel(ytitle, fontsize=15)
+        ax.set_ylabel(ytitle, fontsize=20)
     if ylabel is not None:
-        ax.set_yticklabels(ylabel, rotation=0, fontsize=15)
+        ax.set_yticklabels(ylabel, rotation=0, fontsize=20)
     plt.gca().invert_yaxis()  # 倒置y轴
 
     if title:
-        ax.set_title(title, fontsize=20)
+        ax.set_title(title, fontsize=40)
     if outfile:
         plt.savefig(outfile, bbox_inches='tight', dpi=dpi)
 
@@ -582,10 +622,10 @@ def subplot_timecourse(data, patch_list, movie_name_list, title='', outpath=None
                 for i_rep in range(data.shape[-1]):
                     ax_data.plot(data[i_patch, i_movie, :, i_rep], color='black')
             else:
-                mean = np.mean(data[i_patch, i_movie, :, :], axis=-1)
+                mean = np.nanmean(data[i_patch, i_movie, :, :], axis=-1)
                 ax_data.plot(mean, color='black')
-                y1 = mean + np.std(data[i_patch, i_movie, :, :], axis=-1)
-                y2 = mean - np.std(data[i_patch, i_movie, :, :], axis=-1)
+                y1 = mean + np.nanstd(data[i_patch, i_movie, :, :], axis=-1)
+                y2 = mean - np.nanstd(data[i_patch, i_movie, :, :], axis=-1)
                 ax_data.fill_between(np.arange(data.shape[2]), y1, y2, alpha=0.3, color='steelblue')
             if n_frame is not None:
                 ax_data.axvspan(pre_length, pre_length + n_frame, color='gray', alpha=0.25)
@@ -602,4 +642,205 @@ def subplot_timecourse(data, patch_list, movie_name_list, title='', outpath=None
     if outpath is not None:
         plt.savefig(pjoin(outpath, title+'.png'), dpi=dpi, bbox_inches='tight')
     plt.show()
+
+
+# %%
+def summarize_IC_area_overlap(binary_IC_array, atlas, areanames, outfile=None):
+    """
+    Parameters
+    ----------
+    binary_IC_array : ndarray
+        shape = (n_IC, H, W), binary (bool or 0/1)
+    atlas : ndarray
+        shape = (H, W), int, pixel-wise area id
+    areanames : array-like or list
+        shape = (n_area, 2), [area_id, area_name]
+    outfile : str or None
+        if not None, write csv to this path
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        summary table
+    """
+
+    area_ids = np.asarray(areanames)[:, 0].astype(int)
+    area_name_map = {int(row[0]): row[1] for row in areanames}
+
+    # precompute area sizes
+    area_pixel_count = {aid: np.sum(atlas == aid) for aid in area_ids}
+
+    records = []
+    n_IC = binary_IC_array.shape[0]
+
+    for ic_idx in range(n_IC):
+        ic_mask = binary_IC_array[ic_idx].astype(bool)
+        ic_area = np.sum(ic_mask)
+
+        if ic_area == 0:
+            continue
+
+        overlapping_areas = np.unique(atlas[ic_mask])
+
+        area_stats = []
+
+        for aid in overlapping_areas:
+            if aid not in area_pixel_count:
+                continue
+
+            area_area = area_pixel_count[aid]
+            if area_area == 0:
+                continue
+
+            overlap = np.sum(ic_mask & (atlas == aid))
+            if overlap == 0:
+                continue
+
+            frac_ic = overlap / ic_area
+            frac_area = overlap / area_area
+            score = frac_ic * frac_area
+
+            area_stats.append({
+                "IC": ic_idx,
+                "Area_ID": aid,
+                "Area_Name": area_name_map.get(aid, "Unknown"),
+                "Overlap_frac_of_IC": frac_ic,
+                "Overlap_frac_of_Area": frac_area,
+                "Score": score
+            })
+
+        if len(area_stats) == 0:
+            continue
+
+        # ---- 强制保留 overlap / IC 最大的脑区 ----
+        area_stats = sorted(
+            area_stats,
+            key=lambda x: x["Overlap_frac_of_IC"],
+            reverse=True
+        )
+
+        primary_area = area_stats[0]
+        records.append(primary_area)
+
+        # ---- 其余脑区按 score > 0.1 ----
+        for entry in area_stats[1:]:
+            if entry["Score"] > 0.1:
+                records.append(entry)
+
+    df = pd.DataFrame(records)
+
+    if len(df) > 0:
+        df = df.sort_values(
+            by=["IC", "Overlap_frac_of_IC"],
+            ascending=[True, False]
+        )
+
+    if outfile is not None:
+        df.to_csv(outfile, index=False)
+        print(f"Saved: {outfile}")
+
+    print(df)
+    return df
+
+
+# %%
+def compute_lag_correlation(matrix, max_lag=None):
+    """
+    计算矩阵中每一行之间的归一化 lag correlation 和限制范围内的滞后。
+
+    参数:
+        matrix (numpy.ndarray): 输入二维矩阵，形状为 (n_rows, n_cols)
+        max_lag (int): 限制的最大滞后帧数。如果为 None，则搜索全时程。
+
+    返回:
+        max_corr_matrix (numpy.ndarray): 最大绝对值相关性矩阵
+        max_lag_matrix (numpy.ndarray): 最大相关性对应的滞后矩阵
+    """
+    n_rows = matrix.shape[0]
+    n_cols = matrix.shape[1]
+    max_corr_matrix = np.zeros((n_rows, n_rows))
+    max_lag_matrix = np.zeros((n_rows, n_rows))
+
+    # 互相关结果的全长度为 2*n_cols - 1，中心索引（即 lag=0）在 n_cols - 1
+    center_idx = n_cols - 1
+
+    for i in range(n_rows):
+        for j in range(i, n_rows):  # 只计算上三角矩阵以提高效率
+            # 提取信号并去均值
+            x = matrix[i]
+            y = matrix[j]
+            x = x - np.nanmean(x)
+            y = y - np.nanmean(y)
+            
+            # 计算全量 cross-correlation
+            corr = correlate(x, y, mode='full', method='auto')
+            
+            # 归一化因子
+            normalization_factor = np.nanstd(x) * np.nanstd(y) * n_cols
+            if normalization_factor == 0:
+                corr_norm = corr
+            else:
+                corr_norm = corr / normalization_factor 
+            
+            # 限制滞后范围
+            if max_lag is not None:
+                # 定义搜索窗口的起止索引
+                start_idx = max(0, center_idx - max_lag)
+                end_idx = min(len(corr_norm), center_idx + max_lag + 1)
+                
+                # 对相关性数组进行切片
+                search_window = corr_norm[start_idx:end_idx]
+                
+                # 在窗口内寻找最大绝对值相关性
+                relative_max_idx = np.argmax(np.abs(search_window))
+                max_corr = search_window[relative_max_idx]
+                
+                # 将窗口内的相对索引转换回原始的全局 lag
+                lag = (start_idx + relative_max_idx) - center_idx
+            else:
+                # 不限制范围，搜索全时程（原逻辑）
+                max_corr_idx = np.argmax(np.abs(corr_norm))
+                max_corr = corr_norm[max_corr_idx]
+                lag = max_corr_idx - center_idx
+            
+            # 填入矩阵
+            max_corr_matrix[i, j] = max_corr
+            max_corr_matrix[j, i] = max_corr
+            max_lag_matrix[i, j] = lag
+            max_lag_matrix[j, i] = -lag  # 滞后是互为相反数的
+
+    return max_corr_matrix, max_lag_matrix
+
+
+
+# %%
+def plot_masked_correlation(IC_corr, IC_lag, max_lag_frames, out_file=None):
+    """
+    绘制相关性热图，并将达到 lag 边界的不可靠连接置白。
+    """
+    # 1. 创建 Mask 矩阵：如果 lag 的绝对值等于 max_lag，则判定为不可靠
+    # 允许 1 帧的容错，或者直接用 np.abs(IC_lag) >= max_lag_frames
+    unreliable_mask = np.abs(IC_lag) >= max_lag_frames-1
+    
+    # 对角线通常也建议 mask 掉，因为自相关总是 1 且 lag 为 0
+    diag_mask = np.eye(IC_corr.shape[0], dtype=bool)
+    final_mask = unreliable_mask | diag_mask
+
+    fig=plt.figure(figsize=(10, 8))
+    # 使用 seaborn 绘图，mask 参数会将 True 的位置留白
+    sns.heatmap(IC_corr, mask=final_mask, annot=True, fmt=".2f", 
+                cmap='coolwarm', center=0,annot_kws={"size": 5})
+    
+    plt.title(f'Filtered IC Correlation (Lag constraint: ±{max_lag_frames} frames)')
+    plt.gca().invert_yaxis()  # 倒置y轴
+    # plt.xlabel('IC Index')
+    # plt.ylabel('IC Index')
+    plt.xticks(ticks=np.arange(0.5, n_IC+0.5), labels=[f'IC{i+1}' for i in range(n_IC)])
+    plt.yticks(ticks=np.arange(0.5, n_IC+0.5), labels=[f'IC{i+1}' for i in range(n_IC)], rotation=0)
+    fig.set_facecolor('white')
+    if out_file:
+        plt.savefig(out_file, bbox_inches='tight', pad_inches=0, dpi=300)
+    plt.show()
+
+
 

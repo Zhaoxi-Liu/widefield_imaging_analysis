@@ -125,9 +125,10 @@ def jadeR_cupy(X, m=None, verbose=False):
     if verbose:
         print("jade -> Looking for %d sources" % m)
         print("jade -> Removing the mean value")
-    X_mean = X.mean(1)
-    for i in range(X.shape[1]):
-        X[:,i] -= X_mean
+        
+    X_mean = X.mean(axis=1, keepdims=True)  # shape (740,1)
+    X -= X_mean
+
     # save('./check_cupy/c0.npy',X)
 
     # whitening & projection onto signal subspace
